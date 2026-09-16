@@ -96,6 +96,16 @@ section[id] {
   background: var(--color-primary-dark);
 }
 
+/* Горизонтальная лента без видимого скроллбара (свайп на мобильных) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Line clamp utility */
 .line-clamp-2 {
   display: -webkit-box;

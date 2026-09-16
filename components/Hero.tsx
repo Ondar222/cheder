@@ -5,11 +5,11 @@ import { ArrowDownOutlined, PhoneOutlined, PlayCircleOutlined, EnvironmentOutlin
 import { useEffect, useState, useRef } from 'react';
 
 const videos = [
-  { src: '/videos/video-main.mp4?t=1', title: 'Лечебные грязи озера Чедер', desc: 'Уникальные природные лечебные грязи с богатой минеральной историей' },
-  { src: '/videos/video-1.mp4?t=2', title: 'Живописная природа Тывы', desc: 'Холмистая равнина с благоприятными природно-климатическими условиями' },
-  { src: '/videos/video-2.mp4?t=3', title: 'Культура и традиции', desc: 'Погрузитесь в уникальную культуру Республики Тыва' },
-  { src: '/videos/video-3.mp4?t=4', title: 'Комплексное оздоровление', desc: 'Грязелечение, минеральные ванны, аромафитотерапия и ЛФК' },
-  { src: '/videos/video-4.mp4?t=5', title: 'Сезонные акции', desc: 'Выгодные цены на проживание и оздоровительные программы' },
+  { src: '/videos/video-main.mp4?t=1', title: 'Лечебные грязи озера Чедер', desc: 'Уникальные природные лечебные грязи с богатой минеральной историей', start: 0 },
+  { src: '/videos/video-1.mp4?t=2', title: 'Живописная природа Тывы', desc: 'Холмистая равнина с благоприятными природно-климатическими условиями', start: 14 },
+  { src: '/videos/video-2.mp4?t=3', title: 'Культура и традиции', desc: 'Погрузитесь в уникальную культуру Республики Тыва', start: 28 },
+  { src: '/videos/video-3.mp4?t=4', title: 'Комплексное оздоровление', desc: 'Грязелечение, минеральные ванны, аромафитотерапия и ЛФК', start: 7 },
+  { src: '/videos/video-4.mp4?t=5', title: 'Сезонные акции', desc: 'Выгодные цены на проживание и оздоровительные программы', start: 21 },
 ];
 
 export default function Hero() {
@@ -28,13 +28,21 @@ export default function Hero() {
 
   useEffect(() => {
     videoRefs.current.forEach((video, index) => {
-      if (video) {
-        if (index === currentSlide) {
-          video.play().catch(() => {});
-          video.currentTime = 0;
-        } else {
-          video.pause();
-        }
+      if (!video) return;
+      if (index === currentSlide) {
+        // Каждый слайд стартует со своей отметки, чтобы ролики
+        // не начинались с одного и того же кадра
+        const startAt = videos[index].start ?? 0;
+        const seek = () => {
+          if (Number.isFinite(video.duration) && video.duration > 0) {
+            video.currentTime = startAt % video.duration;
+          }
+        };
+        if (video.readyState >= 1) seek();
+        else video.addEventListener('loadedmetadata', seek, { once: true });
+        video.play().catch(() => {});
+      } else {
+        video.pause();
       }
     });
   }, [currentSlide]);

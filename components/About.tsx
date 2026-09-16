@@ -17,13 +17,13 @@ const cards = [
 
 export default function About() {
   return (
-    <section id="about" className="py-20 sm:py-28 bg-white">
+    <section id="about" className="py-14 sm:py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-10 items-center">
           {/* Left — content */}
           <div className="fade-section">
             <span className="inline-block text-primary font-semibold text-sm tracking-wider uppercase mb-3">О нас</span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-primary-dark mb-6 leading-tight">
+            <h2 className="text-2xl sm:text-3xl font-bold text-primary-dark mb-5 leading-tight">
               Курортно-оздоровительный комплекс
               <br />
               <span className="text-primary relative inline-block">
@@ -34,8 +34,8 @@ export default function About() {
               </span>
             </h2>
             
-            <div className="space-y-4 text-gray-600 leading-relaxed mb-8">
-              <p className="text-lg">
+            <div className="space-y-3 text-gray-600 leading-relaxed mb-6 text-[15px]">
+              <p>
                 Курорт «Чедер» размещается на берегу соленого озера Чедер в Кызылском кожууне Республики Тыва. 
                 Местность представлена холмистой безлесой равниной с благоприятными природно-климатическими условиями.
               </p>
@@ -51,12 +51,12 @@ export default function About() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {features.map((item, i) => (
-                <div key={i} className="bg-surface rounded-2xl p-4 text-center hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-default group">
-                  <div className="mb-2 transition-transform duration-300 group-hover:scale-110">{item.icon}</div>
-                  <div className="text-sm font-bold text-gray-900">{item.label}</div>
-                  <div className="text-xs text-gray-500">{item.desc}</div>
+                <div key={i} className="bg-surface rounded-xl p-3 text-center hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-default group">
+                  <div className="mb-1.5 transition-transform duration-300 group-hover:scale-110">{item.icon}</div>
+                  <div className="text-[13px] font-bold text-gray-900 leading-tight">{item.label}</div>
+                  <div className="text-[11px] text-gray-500">{item.desc}</div>
                 </div>
               ))}
             </div>
@@ -64,22 +64,22 @@ export default function About() {
 
           {/* Right — visual cards */}
           <div className="fade-section">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 {cards.slice(0, 2).map((card, i) => (
-                  <Card key={i} className={`rounded-2xl border-0 shadow-lg ${card.gradient} ${card.textColor} h-48 flex flex-col justify-end p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-default`}>
-                    <div className="mb-2">{card.icon}</div>
-                    <h4 className="font-bold text-lg">{card.title}</h4>
-                    <p className={`text-sm ${card.textColor === 'text-white' ? 'text-white/70' : 'text-primary/70'} mt-1`}>{card.desc}</p>
+                  <Card key={i} className={`rounded-2xl border-0 shadow-lg ${card.gradient} ${card.textColor} h-40 flex flex-col justify-end p-4 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-default`}>
+                    <div className="mb-1.5">{card.icon}</div>
+                    <h4 className="font-bold text-[15px] leading-tight">{card.title}</h4>
+                    <p className={`text-xs ${card.textColor === 'text-white' ? 'text-white/70' : 'text-primary/70'} mt-1`}>{card.desc}</p>
                   </Card>
                 ))}
               </div>
-              <div className="space-y-4 pt-8">
+              <div className="space-y-3 pt-6">
                 {cards.slice(2, 4).map((card, i) => (
-                  <Card key={i} className={`rounded-2xl border-0 shadow-lg ${card.gradient} ${card.textColor} h-56 flex flex-col justify-end p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-default`}>
-                    <div className="mb-2">{card.icon}</div>
-                    <h4 className="font-bold text-lg">{card.title}</h4>
-                    <p className={`text-sm ${card.textColor === 'text-white' ? 'text-white/70' : 'text-primary/70'} mt-1`}>{card.desc}</p>
+                  <Card key={i} className={`rounded-2xl border-0 shadow-lg ${card.gradient} ${card.textColor} h-48 flex flex-col justify-end p-4 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-default`}>
+                    <div className="mb-1.5">{card.icon}</div>
+                    <h4 className="font-bold text-[15px] leading-tight">{card.title}</h4>
+                    <p className={`text-xs ${card.textColor === 'text-white' ? 'text-white/70' : 'text-primary/70'} mt-1`}>{card.desc}</p>
                   </Card>
                 ))}
               </div>

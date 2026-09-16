@@ -9,11 +9,13 @@ export default function Footer() {
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-white font-bold text-lg">
-                Ч
-              </div>
+              <img
+                src="/images/logos/logo.png"
+                alt="Здравница Чедер"
+                className="h-10 w-auto brightness-0 invert"
+              />
               <div>
-                <div className="text-lg font-bold leading-tight">КУРОРТ</div>
+                <div className="text-lg font-bold leading-tight">ЗДРАВНИЦА</div>
                 <div className="text-xs text-white/60 -mt-0.5">ЧЕДЕР</div>
               </div>
             </div>

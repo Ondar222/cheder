@@ -106,14 +106,14 @@ const faqData = [
 
 export default function FAQ() {
   return (
-    <section id="faq" className="py-20 sm:py-28 bg-white">
+    <section id="faq" className="py-14 sm:py-20 bg-white">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-12 fade-section">
+        <div className="text-center mb-8 fade-section">
           <span className="inline-block text-primary font-semibold text-sm tracking-wider uppercase mb-3">ЧаВо</span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-primary-dark mb-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-primary-dark mb-3">
             Часто задаваемые вопросы
           </h2>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600">
             Ответы на самые популярные вопросы о нашем санатории
           </p>
         </div>
@@ -128,12 +128,13 @@ export default function FAQ() {
             styles={{
               header: { 
                 backgroundColor: 'transparent',
-                padding: '20px 24px',
-                fontSize: '16px',
+                padding: '15px 18px',
+                fontSize: '15px',
               },
               body: { 
-                padding: '0 24px 20px',
+                padding: '0 18px 16px',
                 backgroundColor: '#f9fafb',
+                fontSize: '14px',
               },
             }}
           />

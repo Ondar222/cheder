@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AntdStyleRegistry from "@/components/AntdStyleRegistry";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,7 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="icon" href="/favicon.png" sizes="any" />
       </head>
-      <body className="min-h-screen flex flex-col">{children}</body>
+      <body className="min-h-screen flex flex-col">
+        <AntdStyleRegistry>{children}</AntdStyleRegistry>
+      </body>
     </html>
   );
 }

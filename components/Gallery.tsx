@@ -119,15 +119,15 @@ export default function Gallery() {
   };
 
   return (
-    <section id="gallery" className="py-20 sm:py-28 bg-white">
+    <section id="gallery" className="py-14 sm:py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section header */}
-        <div className="text-center mb-12 fade-section">
+        <div className="text-center mb-9 fade-section">
           <span className="inline-block text-primary font-semibold text-sm tracking-wider uppercase mb-3">Галерея</span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-primary-dark mb-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-primary-dark mb-3">
             Жизнь курорта <span className="text-primary">«Чедер»</span>
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+          <p className="text-gray-600 max-w-2xl mx-auto">
             Фотографии и видео из жизни здравницы. Озёра, горы, лечебные процедуры и праздники — всё это Чедер.
           </p>
         </div>
@@ -135,12 +135,12 @@ export default function Gallery() {
         {/* Photo Gallery */}
         <div className="fade-section">
           {/* Filters */}
-          <div className="flex flex-wrap justify-center gap-2 mb-10">
+          <div className="flex flex-wrap justify-center gap-2 mb-7">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveFilter(cat)}
-                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                className={`px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-300 ${
                   activeFilter === cat
                     ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-gray-200'
@@ -155,7 +155,7 @@ export default function Gallery() {
           </div>
 
           {/* Photos grid — uniform sized cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-16">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2.5 mb-12">
             {filteredPhotos.map((photo, index) => (
               <div
                 key={index}
@@ -184,32 +184,32 @@ export default function Gallery() {
 
         {/* Videos section */}
         <div className="fade-section">
-          <div className="flex items-center gap-3 mb-8">
-            <VideoCameraOutlined className="text-2xl text-primary" />
-            <h3 className="text-2xl font-bold text-primary-dark">Видео</h3>
+          <div className="flex items-center gap-2.5 mb-6">
+            <VideoCameraOutlined className="text-xl text-primary" />
+            <h3 className="text-xl font-bold text-primary-dark">Видео</h3>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {videos.map((video, index) => (
               <Card
                 key={index}
-                className="border-0 shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 group cursor-pointer"
+                className="border-0 shadow-md overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 group cursor-pointer"
                 styles={{ body: { padding: 0 } }}
               >
                 <div className={`relative overflow-hidden aspect-video bg-gradient-to-br ${video.gradient} flex items-center justify-center group-hover:opacity-90 transition-opacity`}>
-                  <span className="text-6xl opacity-60 group-hover:scale-110 transition-transform duration-300">{video.emoji}</span>
+                  <span className="text-5xl opacity-60 group-hover:scale-110 transition-transform duration-300">{video.emoji}</span>
                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
-                    <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <VideoCameraOutlined className="text-2xl text-primary" />
+                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <VideoCameraOutlined className="text-xl text-primary" />
                     </div>
                   </div>
                 </div>
-                <div className="p-5">
-                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                <div className="p-4">
+                  <div className="flex items-center gap-2 text-[11px] text-gray-500 mb-1.5">
                     <CameraOutlined /> {video.date}
                   </div>
-                  <h4 className="font-bold text-gray-900 mb-1 group-hover:text-primary transition-colors">{video.title}</h4>
-                  <p className="text-sm text-gray-600">{video.desc}</p>
+                  <h4 className="font-bold text-[15px] text-gray-900 mb-1 group-hover:text-primary transition-colors">{video.title}</h4>
+                  <p className="text-[13px] text-gray-600">{video.desc}</p>
                 </div>
               </Card>
             ))}
