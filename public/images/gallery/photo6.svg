@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#b7e4c7"/>
+  <circle cx="200" cy="200" r="100" fill="#2d6a4f" opacity="0.3"/>
+  <circle cx="600" cy="400" r="150" fill="#40916c" opacity="0.2"/>
+  <text x="400" y="300" font-family="Arial" font-size="36" fill="white" text-anchor="middle" opacity="0.5">Здоровье</text>
+</svg>

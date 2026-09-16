@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800">
+  <defs>
+    <linearGradient id="sky5" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#52b788"/>
+      <stop offset="100%" style="stop-color:#d8f3dc"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="800" fill="url(#sky5)"/>
+  <rect x="300" y="200" width="680" height="400" rx="30" fill="#2d6a4f" opacity="0.4"/>
+  <text x="640" y="380" font-family="Arial" font-size="64" fill="white" text-anchor="middle" font-weight="bold" opacity="0.5">3 990₽</text>
+  <text x="640" y="440" font-family="Arial" font-size="32" fill="white" text-anchor="middle" opacity="0.4">за сутки</text>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#52b788"/>
+  <circle cx="400" cy="300" r="120" fill="#2d6a4f" opacity="0.4"/>
+  <circle cx="400" cy="300" r="80" fill="#e9c46a" opacity="0.3"/>
+  <text x="400" y="300" font-family="Arial" font-size="36" fill="white" text-anchor="middle" opacity="0.5">Культура</text>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#40916c"/>
+  <rect x="100" y="150" width="250" height="300" rx="20" fill="#2d6a4f" opacity="0.5"/>
+  <rect x="450" y="100" width="250" height="400" rx="20" fill="#1b4332" opacity="0.4"/>
+  <text x="400" y="300" font-family="Arial" font-size="36" fill="white" text-anchor="middle" opacity="0.5">Медицина</text>
+</svg>

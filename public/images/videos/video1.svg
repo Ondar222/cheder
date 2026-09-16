@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="225" viewBox="0 0 400 225">
+  <rect width="400" height="225" fill="#2d6a4f"/>
+  <polygon points="170,75 170,150 250,112.5" fill="white" opacity="0.8"/>
+  <text x="200" y="200" font-family="Arial" font-size="16" fill="white" text-anchor="middle" opacity="0.5">Рекламный ролик</text>
+</svg>
