@@ -1,96 +1,108 @@
-import { Card } from 'antd';
 import {
   MedicineBoxOutlined,
-  FallOutlined,
+  ExperimentOutlined,
   EnvironmentOutlined,
   AimOutlined,
   UserOutlined,
   CoffeeOutlined,
+  ThunderboltOutlined,
+  SkinOutlined,
 } from '@ant-design/icons';
+import TiltCard from '@/components/TiltCard';
 
 const services = [
   {
-    icon: <MedicineBoxOutlined className="text-xl" />,
+    icon: <MedicineBoxOutlined />,
     title: 'Грязелечение',
     desc: 'Лечебные грязи озера Чедер — уникальные природные лечебные грязи, используемые в комплексных программах санатория для восстановления физического и психического здоровья.',
-    color: '#2d6a4f',
+    warm: false,
   },
   {
-    icon: <FallOutlined className="text-xl" />,
+    icon: <ExperimentOutlined />,
     title: 'Минеральные ванны',
     desc: 'Подземные воды соленого озера Чедер используются как минеральные лечебные в комплексе с лечебными грязями для оздоровления организма.',
-    color: '#40916c',
+    warm: true,
   },
   {
-    icon: <EnvironmentOutlined className="text-xl" />,
+    icon: <EnvironmentOutlined />,
     title: 'Аромафитотерапия',
     desc: 'Аромафитотерапия на дыхательную систему для общего укрепления организма и восстановления.',
-    color: '#52b788',
+    warm: false,
   },
   {
-    icon: <FallOutlined className="text-xl" />,
+    icon: <ThunderboltOutlined />,
     title: 'Водолечебные процедуры',
-    desc: 'Душ-шарко, циркулярный душ и восходящий душ. Душ Шарко предназначен для струевого, веерного и контрастного шотландского душей. Используется для повышения тонуса мускулатуры, при остеохондрозе позвоночника.',
-    color: '#74c693',
+    desc: 'Душ-шарко, циркулярный душ и восходящий душ. Повышение тонуса мускулатуры, работа с остеохондрозом позвоночника.',
+    warm: true,
   },
   {
-    icon: <AimOutlined className="text-xl" />,
+    icon: <AimOutlined />,
     title: 'Лечебная физкультура',
     desc: 'ЛФК — лечебная физкультура для восстановления физического и психического здоровья, поддержания тонуса и работоспособности.',
-    color: '#95d5b2',
+    warm: false,
   },
   {
-    icon: <UserOutlined className="text-xl" />,
+    icon: <UserOutlined />,
     title: 'Приём терапевта',
     desc: 'Консультация и наблюдение врача-терапевта на протяжении всего курса лечения.',
-    color: '#b7e4c7',
+    warm: false,
   },
   {
-    icon: <AimOutlined className="text-xl" />,
+    icon: <SkinOutlined />,
     title: 'Физиотерапия',
     desc: 'Физиотерапия незаменима в период реабилитации, восстановления после различных заболеваний. Для профилактики обострений и укрепления организма.',
-    color: '#d8f3dc',
+    warm: true,
   },
   {
-    icon: <CoffeeOutlined className="text-xl" />,
+    icon: <CoffeeOutlined />,
     title: 'Трёхразовое питание',
     desc: 'Вкусное и полезное питание, включённое в стоимость проживания. Обеденная зона комплекса.',
-    color: '#e9c46a',
+    warm: false,
   },
 ];
 
 export default function Services() {
   return (
-    <section id="services" className="py-14 sm:py-20 bg-surface">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-10 fade-section">
-          <span className="inline-block text-primary font-semibold text-sm tracking-wider uppercase mb-3">Наши услуги</span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-primary-dark mb-3">
-            Комплексное оздоровление
+    <section id="services" className="relative py-20 sm:py-28 bg-bg-2/40">
+      {/* Разделитель-линия */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[min(72rem,92%)] h-px bg-gradient-to-r from-transparent via-line to-transparent" />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-14 reveal">
+          <span className="hud-label">Услуги</span>
+          <h2 className="font-display text-4xl sm:text-5xl font-medium text-ink mt-5 mb-4 leading-[1.1]">
+            Комплексное <span className="italic text-neon">оздоровление</span>
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Чистый воздух, целебная вода озера и лечебные грязи используются в комплексных программах 
-            санатория для восстановления физического и психического здоровья.
+          <p className="text-muted max-w-2xl mx-auto">
+            Чистый воздух, целебная вода озера и лечебные грязи используются в комплексных
+            программах санатория для восстановления физического и психического здоровья.
           </p>
         </div>
 
-        {/* Сетка на Tailwind: карточки стоят рядами сразу, без ожидания JS-стилей antd */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+        {/* Стеклянные 3D-карточки */}
+        <div className="scene-3d grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
           {services.map((s, i) => (
-            <Card
+            <TiltCard
               key={i}
-              className="fade-section h-full border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-              styles={{ body: { padding: '18px 18px' } }}
+              maxTilt={8}
+              className={`reveal reveal-3d r-${((i % 4) + 1) * 100} glass rounded-2xl p-5 h-full cursor-pointer group shadow-[0_10px_40px_rgba(0,0,0,0.3)] hover:shadow-[0_20px_60px_rgba(124,217,190,0.1)]`}
             >
-              <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-3.5 transition-transform duration-300 group-hover:scale-110"
-                style={{ backgroundColor: `${s.color}25`, color: s.color }}
-              >
-                {s.icon}
+              <div className="flex items-start justify-between mb-4">
+                <div
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl depth-1 transition-colors ${
+                    s.warm
+                      ? 'bg-warm/10 border border-warm/25 text-warm group-hover:bg-warm/20'
+                      : 'bg-accent/10 border border-accent/25 text-accent group-hover:bg-accent/20'
+                  }`}
+                >
+                  {s.icon}
+                </div>
               </div>
-              <h3 className="text-base font-bold text-gray-900 mb-1.5 leading-snug">{s.title}</h3>
-              <p className="text-gray-600 text-[13px] leading-relaxed line-clamp-3">{s.desc}</p>
-            </Card>
+              <h3 className="font-display text-xl font-semibold text-ink mb-2 leading-snug depth-1 italic">
+                {s.title}
+              </h3>
+              <p className="text-muted text-[13px] leading-relaxed line-clamp-3 depth-1">{s.desc}</p>
+            </TiltCard>
           ))}
         </div>
       </div>

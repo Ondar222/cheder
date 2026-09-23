@@ -1,4 +1,3 @@
-import { Card, Tag } from 'antd';
 import {
   CalendarOutlined,
   ArrowRightOutlined,
@@ -77,7 +76,7 @@ function toNewsItem(post: VkPost): NewsItem {
   };
 }
 
-function NewsCard({ item }: { item: NewsItem }) {
+function NewsCard({ item, index }: { item: NewsItem; index: number }) {
   const isFromVk = Boolean(item.url);
 
   return (
@@ -85,78 +84,74 @@ function NewsCard({ item }: { item: NewsItem }) {
       href={item.url ?? VK_GROUP_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="block h-full shrink-0 min-w-[80%] max-w-[85%] sm:shrink sm:min-w-0 sm:max-w-none snap-center"
+      className={`fade-section block h-full shrink-0 min-w-[80%] max-w-[85%] sm:shrink sm:min-w-0 sm:max-w-none snap-center group glass rounded-2xl overflow-hidden transition-all duration-300 hover:border-accent/40 hover:shadow-[0_20px_60px_rgba(46,230,184,0.1)] hover:-translate-y-1 r-${((index % 4) + 1) * 100}`}
     >
-      <Card
-        className="news-card fade-section h-full border-0 shadow-sm transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 group"
-        styles={{ body: { padding: '18px' } }}
-        cover={
-          item.image ? (
-            <div className="relative h-40 overflow-hidden bg-gray-100">
-              <img
-                src={item.image}
-                alt={item.title}
-                loading="lazy"
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              {item.video && (
-                <span className="absolute inset-0 flex items-center justify-center text-white/90 drop-shadow">
-                  <PlayCircleOutlined className="text-4xl" />
-                </span>
-              )}
-              {(item.photos ?? 0) > 1 && (
-                <span className="absolute right-2 bottom-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white">
-                  <PictureOutlined /> {item.photos}
-                </span>
-              )}
-            </div>
-          ) : null
-        }
-      >
-        <div className="flex items-center gap-2 text-[11px] text-gray-500 mb-2">
+      {item.image && (
+        <div className="relative h-40 overflow-hidden bg-bg-2">
+          <img
+            src={item.image}
+            alt={item.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          {item.video && (
+            <span className="absolute inset-0 flex items-center justify-center text-accent drop-shadow-[0_0_12px_rgba(46,230,184,0.8)]">
+              <PlayCircleOutlined className="text-4xl" />
+            </span>
+          )}
+          {(item.photos ?? 0) > 1 && (
+            <span className="absolute right-2 bottom-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 font-mono-hud text-[10px] text-accent">
+              <PictureOutlined /> {item.photos}
+            </span>
+          )}
+        </div>
+      )}
+      <div className="p-[18px] flex flex-col h-full">
+        <div className="flex items-center gap-2 font-mono-hud text-[10px] text-muted mb-2.5">
           <CalendarOutlined /> {item.date}
           {item.pinned && (
-            <span
-              className="ml-1 flex items-center gap-1 text-primary"
-              title="Закреплённый пост"
-            >
+            <span className="ml-1 flex items-center gap-1 text-accent" title="Закреплённый пост">
               <PushpinOutlined /> закреплено
             </span>
           )}
         </div>
         <h3
-          className={`text-[15px] font-bold text-gray-900 mb-2 leading-snug group-hover:text-primary transition-colors ${
+          className={`text-[15px] font-semibold text-ink mb-2 leading-snug group-hover:text-accent transition-colors ${
             item.excerpt ? 'line-clamp-2' : 'line-clamp-4'
           }`}
         >
           {item.title}
         </h3>
         {item.excerpt && (
-          <p className="text-[13px] text-gray-600 mb-3.5 leading-relaxed line-clamp-3">
+          <p className="text-[13px] text-muted mb-4 leading-relaxed line-clamp-3">
             {item.excerpt}
           </p>
         )}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 mt-auto">
           <div className="flex flex-wrap gap-1.5">
             {isFromVk ? (
-              <Tag color="blue" className="!rounded-full !text-[11px] !px-2 !mr-0">
+              <span className="inline-flex rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">
                 ВКонтакте
-              </Tag>
+              </span>
             ) : (
               (item.tags ?? []).map((tag) => (
-                <Tag key={tag} color="green" className="!rounded-full !text-[11px] !px-2 !mr-0">
+                <span
+                  key={tag}
+                  className="inline-flex rounded-full border border-warm/30 bg-warm/10 px-2 py-0.5 text-[10px] font-medium text-warm"
+                >
                   {tag}
-                </Tag>
+                </span>
               ))
             )}
           </div>
           {isFromVk && (
-            <span className="flex shrink-0 items-center gap-1 text-[11px] text-gray-400">
+            <span className="flex shrink-0 items-center gap-1 font-mono-hud text-[10px] text-muted">
               <LikeOutlined /> {item.likes ?? 0}
             </span>
           )}
         </div>
-      </Card>
+      </div>
     </a>
   );
 }
@@ -166,23 +161,24 @@ export default async function News() {
   const items: NewsItem[] = posts.length > 0 ? posts.map(toNewsItem) : fallbackNews;
 
   return (
-    <section id="news" className="py-14 sm:py-20 bg-surface">
+    <section id="news" className="relative py-20 sm:py-28">
+      {/* Разделитель-линия */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[min(72rem,92%)] h-px bg-gradient-to-r from-transparent via-line to-transparent" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-12 fade-section">
           <div>
-            <span className="inline-block text-primary font-semibold text-sm tracking-wider uppercase mb-3">
-              Новости
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-primary-dark">
-              Последние новости
+            <span className="hud-label">Новости</span>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold text-ink mt-5">
+              Последние <span className="text-neon">новости</span>
             </h2>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-3 text-sm text-muted">
               Публикации из группы{' '}
               <a
                 href={VK_GROUP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-semibold text-primary hover:text-primary-dark"
+                className="font-semibold text-accent hover:text-accent-2 transition-colors"
               >
                 vk.com/z_cheder
               </a>
@@ -192,7 +188,7 @@ export default async function News() {
             href={VK_GROUP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 sm:mt-0 text-primary font-semibold hover:text-primary-dark transition-colors flex items-center gap-1"
+            className="mt-5 sm:mt-0 btn-ghost !py-2.5 !px-5 !text-[13px]"
           >
             Все новости <ArrowRightOutlined />
           </a>
@@ -204,8 +200,8 @@ export default async function News() {
         */}
         <div className="-mx-4 sm:mx-0 -my-6 sm:my-0">
           <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 overflow-x-auto sm:overflow-visible no-scrollbar snap-x snap-proximity px-4 sm:px-0 py-6 sm:py-0">
-            {items.map((item) => (
-              <NewsCard key={item.id} item={item} />
+            {items.map((item, index) => (
+              <NewsCard key={item.id} item={item} index={index} />
             ))}
           </div>
         </div>

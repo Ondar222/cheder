@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Button } from 'antd';
 import {
   PhoneOutlined,
   MailOutlined,
@@ -78,72 +77,79 @@ export default function Header() {
     <>
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled ? 'bg-white/95 shadow-lg backdrop-blur-md' : 'bg-white/90 backdrop-blur-md'
+          scrolled
+            ? 'glass-strong shadow-[0_8px_40px_rgba(0,0,0,0.45)]'
+            : 'bg-transparent border-b border-transparent'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           {/* Top bar */}
-          <div className="hidden sm:flex items-center justify-between py-2 border-b border-gray-100 text-sm text-gray-600">
+          <div className="hidden sm:flex items-center justify-between py-2 border-b border-line text-[11px] tracking-[0.08em] text-muted">
             <div className="flex items-center gap-6">
-              <a href="tel:+79133405566" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+              <a href="tel:+79133405566" className="flex items-center gap-1.5 hover:text-accent transition-colors">
                 <PhoneOutlined /> +7 (913) 340-55-66
               </a>
-              <a href="mailto:info.cheder@yandex.ru" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+              <a href="mailto:info.cheder@yandex.ru" className="flex items-center gap-1.5 hover:text-accent transition-colors">
                 <MailOutlined /> info.cheder@yandex.ru
               </a>
             </div>
             <div className="flex items-center gap-1.5">
               <EnvironmentOutlined />
-              <span>Республика Тыва, г. Кызыл, ул. Интернациональная, 106</span>
+              <span>Республика Тыва · озеро Чедер</span>
             </div>
           </div>
 
           {/* Main nav */}
-          <div className={`flex items-center justify-between transition-all duration-500 ${scrolled ? 'py-2' : 'py-3'}`}>
+          <div className={`flex items-center justify-between transition-all duration-500 ${scrolled ? 'py-2.5' : 'py-4'}`}>
             <a
               href="#hero"
               onClick={(e) => {
                 e.preventDefault();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="flex items-center gap-2 group"
+              className="flex items-center gap-2.5 group"
             >
-              <img src="/images/logos/logo.png" alt="Здравница Чедер" className="h-10 w-auto" />
-              <div>
-                <div className="text-lg font-bold text-primary-dark leading-tight">ЗДРАВНИЦА</div>
-                <div className="text-xs text-gray-500 -mt-0.5">ЧЕДЕР</div>
-              </div>
+              <span className="relative flex h-11 w-11 items-center justify-center">
+                <span className="absolute inset-0 rounded-xl bg-accent/10 border border-line group-hover:bg-accent/20 transition-colors" />
+                <span className="absolute inset-0 rounded-xl blur-md bg-accent/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <img src="/images/logos/logo.png" alt="Здравница Чедер" className="relative h-8 w-auto" />
+              </span>
+              <span>
+                <span className="font-display block text-[19px] font-semibold tracking-[0.06em] text-ink leading-tight">
+                  Здравница
+                </span>
+                <span className="block text-[10px] tracking-[0.32em] uppercase text-accent -mt-0.5">Чедер</span>
+              </span>
             </a>
 
             {/* Desktop nav */}
-            <nav className="hidden lg:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-0.5">
               {navItems.map((item) => (
                 <button
                   key={item.key}
                   onClick={() => scrollTo(item.key)}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                  className="group relative px-3.5 py-2 text-[13px] font-medium text-muted hover:text-ink transition-colors"
                 >
                   {item.label}
+                  <span className="absolute inset-x-3 -bottom-0.5 h-px bg-gradient-to-r from-accent to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
                 </button>
               ))}
             </nav>
 
             <div className="hidden lg:flex items-center gap-3">
-              <a href="tel:+79133405566">
-                <Button type="primary" className="bg-primary hover:bg-primary-dark border-0 rounded-full px-5 shadow-md hover:shadow-lg transition-all duration-300">
-                  <PhoneOutlined /> Позвонить
-                </Button>
+              <a href="tel:+79133405566" className="btn-neon !py-2.5 !px-6 !text-[13px]">
+                <PhoneOutlined /> Забронировать
               </a>
             </div>
 
             {/* Mobile burger */}
             <button
-              className="lg:hidden p-2 text-primary-dark rounded-xl transition-colors hover:bg-primary/5"
+              className="lg:hidden p-2.5 text-ink glass rounded-xl transition-colors hover:border-accent"
               onClick={open ? closeMenu : openMenu}
               aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
               aria-expanded={open}
             >
-              {open ? <CloseOutlined style={{ fontSize: 24 }} /> : <MenuOutlined style={{ fontSize: 24 }} />}
+              {open ? <CloseOutlined style={{ fontSize: 22 }} /> : <MenuOutlined style={{ fontSize: 22 }} />}
             </button>
           </div>
         </div>
@@ -162,7 +168,7 @@ export default function Header() {
             <div
               onClick={closeMenu}
               aria-hidden="true"
-              className={`fixed inset-0 z-[90] bg-primary-dark/50 backdrop-blur-[3px] transition-opacity duration-[400ms] ${
+              className={`fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm transition-opacity duration-[400ms] ${
                 open ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
             />
@@ -175,23 +181,25 @@ export default function Header() {
               onTouchStart={onTouchStart}
               onTouchEnd={onTouchEnd}
               className={`fixed top-0 right-0 bottom-0 z-[100] w-full sm:w-[440px]
-                bg-white shadow-2xl flex flex-col
+                bg-[#070d0b] border-l border-line shadow-2xl flex flex-col
                 transition-transform duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)]
                 ${open ? 'translate-x-0' : 'translate-x-full'}`}
             >
               {/* Шапка панели */}
-              <div className="flex items-center justify-between px-5 h-16 border-b border-gray-100 shrink-0">
+              <div className="flex items-center justify-between px-5 h-16 border-b border-line shrink-0">
                 <div className="flex items-center gap-2">
-                  <img src="/images/logos/logo.png" alt="Здравница Чедер" className="h-9 w-auto" />
+                  <img src="/images/logos/logo.png" alt="Здравница Чедер" className="h-8 w-auto" />
                   <div>
-                    <div className="text-sm font-bold text-primary-dark leading-tight">ЗДРАВНИЦА</div>
-                    <div className="text-[11px] text-gray-500 -mt-0.5">ЧЕДЕР</div>
+                    <div className="font-display text-[17px] font-semibold tracking-[0.06em] text-ink leading-tight">
+                      Здравница
+                    </div>
+                    <div className="text-[10px] tracking-[0.32em] uppercase text-accent -mt-0.5">Чедер</div>
                   </div>
                 </div>
                 <button
                   onClick={closeMenu}
                   aria-label="Закрыть меню"
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 bg-gray-100 hover:bg-primary/10 hover:text-primary transition-all duration-300 active:scale-90"
+                  className="w-10 h-10 rounded-full glass flex items-center justify-center text-muted hover:text-accent hover:border-accent transition-all duration-300 active:scale-90"
                 >
                   <CloseOutlined style={{ fontSize: 18 }} />
                 </button>
@@ -206,15 +214,16 @@ export default function Header() {
                     style={{ transitionDelay: open ? `${150 + i * 45}ms` : '0ms' }}
                     className={`group flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3.5 text-left
                       text-[15px] font-medium transition-all duration-500 ease-out
-                      hover:bg-primary/5 hover:text-primary active:scale-[0.99]
+                      hover:bg-accent/5 hover:text-accent active:scale-[0.99]
                       ${open ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}
-                      ${i === navItems.length - 1 ? '' : 'border-b border-gray-50'}`}
+                      ${i === navItems.length - 1 ? '' : 'border-b border-white/5'}`}
                   >
                     <span className="flex items-center gap-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary/25 group-hover:bg-primary transition-colors" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-accent/40 group-hover:bg-accent transition-colors" />
+                      <span className="font-mono-hud text-[10px] text-accent/50">{String(i + 1).padStart(2, '0')}</span>
                       {item.label}
                     </span>
-                    <span className="text-gray-300 group-hover:text-primary group-hover:translate-x-0.5 transition-all text-sm">→</span>
+                    <span className="text-accent/40 group-hover:text-accent group-hover:translate-x-0.5 transition-all text-sm">→</span>
                   </button>
                 ))}
               </nav>
@@ -222,28 +231,21 @@ export default function Header() {
               {/* Контакты и CTA */}
               <div
                 style={{ transitionDelay: open ? `${150 + navItems.length * 45}ms` : '0ms' }}
-                className={`shrink-0 border-t border-gray-100 px-5 py-5 space-y-3 transition-all duration-500 ease-out
+                className={`shrink-0 border-t border-line px-5 py-5 space-y-3 transition-all duration-500 ease-out
                   ${open ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
               >
-                <a href="tel:+79133405566" className="block">
-                  <Button
-                    type="primary"
-                    block
-                    size="large"
-                    className="!bg-primary hover:!bg-primary-dark border-0 rounded-full h-12 font-semibold shadow-lg shadow-primary/25 transition-all duration-300"
-                  >
-                    <PhoneOutlined /> Позвонить
-                  </Button>
+                <a href="tel:+79133405566" className="btn-neon w-full">
+                  <PhoneOutlined /> Позвонить
                 </a>
-                <div className="space-y-1.5 text-sm text-gray-600">
-                  <a href="tel:+79133440159" className="flex items-center gap-2 hover:text-primary transition-colors">
-                    <PhoneOutlined className="text-primary" /> +7 (913) 344-01-59
+                <div className="space-y-1.5 text-sm text-muted">
+                  <a href="tel:+79133440159" className="flex items-center gap-2 hover:text-accent transition-colors">
+                    <PhoneOutlined className="text-accent" /> +7 (913) 344-01-59
                   </a>
-                  <a href="mailto:info.cheder@yandex.ru" className="flex items-center gap-2 hover:text-primary transition-colors break-all">
-                    <MailOutlined className="text-primary" /> info.cheder@yandex.ru
+                  <a href="mailto:info.cheder@yandex.ru" className="flex items-center gap-2 hover:text-accent transition-colors break-all">
+                    <MailOutlined className="text-accent" /> info.cheder@yandex.ru
                   </a>
-                  <div className="flex items-start gap-2 text-gray-500">
-                    <EnvironmentOutlined className="text-primary mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-2 text-muted/70">
+                    <EnvironmentOutlined className="text-accent mt-0.5 shrink-0" />
                     <span>г. Кызыл, ул. Интернациональная, 106</span>
                   </div>
                 </div>

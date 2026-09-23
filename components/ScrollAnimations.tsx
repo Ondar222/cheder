@@ -2,6 +2,12 @@
 
 import { useEffect } from 'react';
 
+/**
+ * Скролл-reveal: секции появляются с 3D-эффектом (rotateX + подъём),
+ * когда попадают в зону видимости. Поддерживает и старый класс
+ * .fade-section (используется в горизонтальных каруселях, где
+ * transform ломает snap-скролл — там только fade).
+ */
 export default function ScrollAnimations() {
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -12,10 +18,10 @@ export default function ScrollAnimations() {
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' },
     );
 
-    const sections = document.querySelectorAll('.fade-section');
+    const sections = document.querySelectorAll('.reveal, .fade-section');
     sections.forEach((s) => observer.observe(s));
 
     return () => observer.disconnect();

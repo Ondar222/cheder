@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from 'antd';
-import { ArrowDownOutlined, PhoneOutlined, PlayCircleOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { ArrowDownOutlined, PhoneOutlined, PlayCircleOutlined, CheckOutlined } from '@ant-design/icons';
 import { useEffect, useState, useRef } from 'react';
+import Particles from '@/components/Particles';
 
 const videos = [
   { src: '/videos/video-main.mp4?t=1', title: 'Лечебные грязи озера Чедер', desc: 'Уникальные природные лечебные грязи с богатой минеральной историей', start: 0 },
@@ -17,6 +17,29 @@ export default function Hero() {
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Параллакс: фон и контент движутся с разной скоростью
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (y > window.innerHeight) return;
+        el.style.setProperty('--parallax', `${y * 0.35}px`);
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isAutoPlaying) return;
@@ -54,25 +77,34 @@ export default function Hero() {
   };
 
   return (
-    <section id="hero" className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Hero background image */}
+    <section
+      id="hero"
+      ref={sectionRef}
+      className="relative min-h-screen flex items-center overflow-hidden"
+    >
+      {/* Фоновое изображение с параллаксом */}
       {!videoError && (
-        <div className="absolute inset-0">
+        <div
+          className="absolute inset-0 will-change-transform"
+          style={{ transform: 'translateY(calc(var(--parallax, 0) * 0.6))' }}
+        >
           <img
             src="/images/gallery/DJI_0595.png"
             alt="Здравница Чедер"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/85 via-primary-dark/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-[#050807]" />
         </div>
       )}
-      {/* Video Slides */}
+
+      {/* Видео-слайды с параллаксом */}
       {videos.map((video, index) => (
         <div
           key={index}
-          className={`absolute inset-0 transition-opacity duration-1500 ${
+          className={`absolute inset-0 transition-opacity duration-[1500ms] will-change-transform ${
             index === currentSlide && !videoError ? 'opacity-100' : 'opacity-0'
           }`}
+          style={{ transform: 'translateY(calc(var(--parallax, 0) * 0.6))' }}
         >
           <video
             ref={(el) => { videoRefs.current[index] = el; }}
@@ -85,52 +117,70 @@ export default function Hero() {
           >
             <source src={video.src} type="video/mp4" />
           </video>
-          {/* Dark overlay with gradient */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/85 via-primary-dark/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/35 to-[#050807]" />
         </div>
       ))}
 
-      {/* Floating orbs */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-accent/20 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary-light/20 rounded-full blur-3xl animate-float-delay" />
+      {/* Живые «светлячки» над озером */}
+      <Particles className="absolute inset-0 z-[5] w-full h-full pointer-events-none" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-32 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="text-white animate-fade-in-up">
-            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium mb-6">
-              <span className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-              Санаторно-курортный комплекс
+      {/* Мягкое свечение рассвета */}
+      <div className="absolute -top-40 left-1/4 w-[45vw] h-[45vw] rounded-full bg-accent/10 blur-[120px] pointer-events-none animate-glow" />
+      <div className="absolute bottom-0 right-0 w-[40vw] h-[40vw] rounded-full bg-warm/8 blur-[130px] pointer-events-none" />
+
+      {/* Контент */}
+      <div
+        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-40 pb-28 w-full"
+        style={{ transform: 'translateY(calc(var(--parallax, 0) * -0.15))' }}
+      >
+        <div className="grid lg:grid-cols-12 gap-10 items-center">
+          <div className="lg:col-span-7">
+            {/* Мягкий бейдж */}
+            <div className="inline-flex items-center gap-2.5 glass rounded-full px-4 py-2 mb-8 animate-fade-in">
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inline-flex w-full h-full rounded-full bg-accent opacity-75 animate-ping" />
+                <span className="relative inline-flex w-2 h-2 rounded-full bg-accent" />
+              </span>
+              <span className="text-[12px] tracking-[0.18em] uppercase text-accent-2">Санаторий у солёного озера</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-              Курорт <span className="text-accent-light">«Чедер»</span>
+            <h1 className="font-display text-5xl sm:text-6xl lg:text-[76px] font-medium leading-[1.02] mb-7 text-ink">
+              Тишина, вода
               <br />
-              <span className="text-xl sm:text-2xl font-normal text-white/90">
-                Республика Тыва • Соленое озеро • Лечебные грязи
-              </span>
+              <span className="italic text-neon">и время для себя</span>
+              <br />
+              <span className="text-3xl sm:text-4xl lg:text-[42px] text-warm italic font-normal">на берегу озера Чедер</span>
             </h1>
 
-            <p className="text-lg sm:text-xl text-white/85 mb-8 max-w-xl leading-relaxed">
-              Курортно-оздоровительный комплекс на берегу соленого озера Чедер в Кызылском кожууне. 
-              Уникальные лечебные грязи, минеральные воды, грязелечение и комплексные программы 
-              восстановления физического и психического здоровья.
+            <p className="text-lg text-muted mb-10 max-w-xl leading-relaxed">
+              Целебные грязи, минеральные воды и простор тувинской степи —
+              оздоровление, в котором технологии остаются на втором плане.
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <Button
-                size="large"
-                className="bg-accent hover:bg-accent-light text-primary-dark border-0 rounded-full px-8 font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+              <button
+                className="btn-neon"
                 onClick={() => document.getElementById('contacts')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 <PhoneOutlined /> Забронировать
-              </Button>
-              <Button
-                size="large"
-                icon={<PlayCircleOutlined />}
-                className="bg-white/10 hover:bg-white/20 text-white border-white/20 rounded-full px-6 font-medium text-base backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
-              >
-                Рекламный ролик
-              </Button>
+              </button>
+              <button className="btn-ghost">
+                <PlayCircleOutlined /> Рекламный ролик
+              </button>
+            </div>
+
+            {/* Тёплая статистика */}
+            <div className="flex flex-wrap gap-x-12 gap-y-4 mt-14">
+              {[
+                { value: 'от 3 500₽', label: 'за сутки, всё включено' },
+                { value: '690 м', label: 'высота над уровнем моря' },
+                { value: '24/7', label: 'забота о вашем покое' },
+              ].map((stat) => (
+                <div key={stat.label}>
+                  <div className="font-display text-[26px] font-semibold text-neon italic">{stat.value}</div>
+                  <div className="text-[11px] tracking-[0.14em] uppercase text-muted mt-1.5">{stat.label}</div>
+                </div>
+              ))}
             </div>
 
             {/* Slide counter */}
@@ -139,24 +189,28 @@ export default function Hero() {
                 <button
                   key={index}
                   onClick={() => goToSlide(index)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    index === currentSlide ? 'w-8 bg-accent' : 'w-4 bg-white/30 hover:bg-white/50'
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    index === currentSlide ? 'w-10 bg-accent shadow-[0_0_10px_rgba(124,217,190,0.7)]' : 'w-4 bg-white/20 hover:bg-white/40'
                   }`}
-                  aria-label={`Go to slide ${index + 1}`}
+                  aria-label={`Слайд ${index + 1}`}
                 />
               ))}
             </div>
           </div>
 
-          {/* Right side — decorative card */}
-          <div className="hidden lg:block animate-fade-in-up delay-200">
-            <div className="rounded-3xl p-8 text-gray-800 shadow-2xl max-w-md ml-auto backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/15 transition-all duration-300">
-              <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mb-5">
-                <EnvironmentOutlined className="text-3xl text-white" />
+          {/* Правая стеклянная карта */}
+          <div className="hidden lg:block lg:col-span-5 animate-fade-in">
+            <div className="hud glass-strong rounded-3xl p-8 max-w-md ml-auto animate-float-y">
+              <div className="flex items-center justify-between mb-6">
+                <span className="text-[11px] tracking-[0.24em] uppercase text-accent">Всё включено</span>
+                <span className="w-2 h-2 rounded-full bg-accent animate-glow" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">Комплексное оздоровление</h3>
-              <p className="text-white/80 mb-5 leading-relaxed">
-                Грязелечение, минеральные ванны, аромафитотерапия, ЛФК и приём терапевта — всё включено в стоимость.
+              <h3 className="font-display text-2xl font-semibold text-ink mb-4 italic">
+                Комплексное оздоровление
+              </h3>
+              <p className="text-muted text-sm mb-6 leading-relaxed">
+                Грязелечение, минеральные ванны, аромафитотерапия и приём терапевта —
+                обо всём позаботились мы.
               </p>
               <div className="space-y-3">
                 {[
@@ -164,14 +218,18 @@ export default function Hero() {
                   'Минеральные ванны',
                   'Аромафитотерапия',
                   'Лечебная физкультура',
-                  'Приём терапевта',
                   'Трёхразовое питание',
                 ].map((item) => (
-                  <div key={item} className="flex items-center gap-3 text-sm text-white/90">
-                    <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-xs shrink-0">✓</span>
+                  <div key={item} className="flex items-center gap-3 text-sm text-ink/90">
+                    <span className="w-5 h-5 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shrink-0">
+                      <CheckOutlined style={{ fontSize: 10 }} />
+                    </span>
                     {item}
                   </div>
                 ))}
+              </div>
+              <div className="mt-6 pt-5 border-t border-line text-[11px] tracking-[0.2em] uppercase text-muted/80">
+                Весна 2026 · места есть
               </div>
             </div>
           </div>
@@ -179,8 +237,8 @@ export default function Hero() {
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/60 animate-bounce">
-        <ArrowDownOutlined style={{ fontSize: 28 }} />
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-accent/70 animate-bounce z-10">
+        <ArrowDownOutlined style={{ fontSize: 26 }} />
       </div>
     </section>
   );

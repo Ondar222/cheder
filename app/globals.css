@@ -1,14 +1,32 @@
 @import "tailwindcss";
 
+/* ============================================================
+   ЗДРАВНИЦА ЧЕДЕР // Дизайн-система «Отель будущего»
+   Вечернее озеро: полумрак, жемчуг, мягкий аквамарин, золото
+   ============================================================ */
+
 @theme {
-  --color-primary: #2d6a4f;
-  --color-primary-light: #40916c;
-  --color-primary-dark: #1b4332;
-  --color-accent: #d4a373;
-  --color-accent-light: #e9c46a;
-  --color-surface: #f0fdf4;
-  --color-text: #1a1a2e;
-  --color-text-light: #6c757d;
+  --color-bg: #081210;
+  --color-bg-2: #0d1b16;
+  --color-ink: #f3eee3;
+  --color-muted: #a3b8ad;
+  --color-accent: #7cd9be;
+  --color-accent-2: #c9f2e2;
+  --color-warm: #e8cf9e;
+  --color-line: rgba(124, 217, 190, 0.14);
+}
+
+:root {
+  --bg: #081210;
+  --bg-2: #0d1b16;
+  --ink: #f3eee3;
+  --muted: #a3b8ad;
+  --accent: #7cd9be;
+  --accent-2: #c9f2e2;
+  --warm: #e8cf9e;
+  --line: rgba(124, 217, 190, 0.14);
+  --glass: rgba(243, 238, 227, 0.05);
+  --glass-strong: rgba(243, 238, 227, 0.08);
 }
 
 html {
@@ -16,107 +34,394 @@ html {
 }
 
 body {
-  color: var(--color-text);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  overflow-x: hidden;
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
+/* Глобальный фон: мягкий вечерний свет над озером */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(55vw 55vw at 82% -12%, rgba(124, 217, 190, 0.09), transparent 62%),
+    radial-gradient(45vw 45vw at -5% 38%, rgba(232, 207, 158, 0.07), transparent 58%),
+    radial-gradient(50vw 50vw at 65% 115%, rgba(124, 217, 190, 0.06), transparent 60%);
+}
+
+::selection {
+  background: rgba(124, 217, 190, 0.32);
+  color: #ffffff;
+}
+
+/* ---------------- Типографика ---------------- */
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.font-mono-hud {
+  font-family: var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.92em;
+}
+
+/* Мягкий градиентный текст: жемчуг → аквамарин */
+.text-neon {
+  background: linear-gradient(105deg, #fdf9ef 0%, var(--accent-2) 55%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 28px rgba(124, 217, 190, 0.28));
+}
+
+.text-warm {
+  background: linear-gradient(105deg, var(--warm), #f7ead0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------------- Стекло ---------------- */
+
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-strong {
+  background: var(--glass-strong);
+  border: 1px solid rgba(124, 217, 190, 0.2);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+/* Деликатные уголки-акценты */
+.hud {
+  position: relative;
+}
+.hud::before,
+.hud::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  opacity: 0.45;
+  transition: opacity 0.5s ease;
+}
+.hud::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1px solid var(--accent);
+  border-left: 1px solid var(--accent);
+  border-top-left-radius: 6px;
+}
+.hud::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1px solid var(--accent);
+  border-right: 1px solid var(--accent);
+  border-bottom-right-radius: 6px;
+}
+.hud:hover::before,
+.hud:hover::after {
+  opacity: 0.9;
+}
+
+/* Нежная метка-лейбл секции */
+.hud-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.hud-label::before {
+  content: '';
+  width: 30px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+/* Технологичная сетка-фон */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(124, 217, 190, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 217, 190, 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, black 30%, transparent 75%);
+}
+
+/* ---------------- 3D ---------------- */
+
+.scene-3d {
+  perspective: 1200px;
+}
+
+.tilt-card {
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease-out, box-shadow 0.4s ease;
+  will-change: transform;
+}
+.tilt-card.tilt-idle {
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tilt-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    420px circle at var(--glare-x, 50%) var(--glare-y, 50%),
+    rgba(253, 249, 239, 0.1),
+    rgba(124, 217, 190, 0.05) 40%,
+    transparent 65%
+  );
+}
+.tilt-card:hover .tilt-glare {
+  opacity: 1;
+}
+
+/* Внутренние элементы, «всплывающие» из карточки */
+.depth-1 { transform: translateZ(24px); }
+.depth-2 { transform: translateZ(48px); }
+
+/* Карточки цен: перспективный ряд */
+.price-scene {
+  perspective: 1400px;
+}
+.price-card {
+  transform: rotateY(6deg) translateZ(0);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease;
+  transform-style: preserve-3d;
+}
+.price-card:hover {
+  transform: rotateY(0) translateZ(40px);
+}
+.price-card:nth-child(3n + 1) { transform: rotateY(-7deg) translateZ(0); }
+.price-card:nth-child(3n + 1):hover { transform: rotateY(0) translateZ(40px); }
+@media (max-width: 640px) {
+  .price-card,
+  .price-card:nth-child(3n + 1),
+  .price-card:hover {
+    transform: none;
+  }
+}
+
+/* Галерея: 3D-наклон изображений при наведении */
+.gallery-item {
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.5s ease;
+}
+.gallery-item:hover {
+  transform: translateZ(24px) rotateX(3deg) rotateY(-3deg) scale(1.02);
+}
+
+/* ---------------- Анимации ---------------- */
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes gradient {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+.animate-fade-in { animation: fade-in 1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-glow { animation: glow-pulse 5s ease-in-out infinite; }
+.animate-float-y { animation: float-y 7s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 24s linear infinite; }
+
+/* Бегущая строка */
+.marquee {
+  display: flex;
+  overflow: hidden;
+  user-select: none;
+  gap: 3rem;
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+.marquee-track {
+  display: flex;
+  flex-shrink: 0;
+  gap: 3rem;
+  min-width: 100%;
+  animation: marquee 30s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(5deg); }
-}
-
-@keyframes float-delay {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-30px) rotate(-5deg); }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.8s ease-out forwards;
-}
-
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient 8s ease infinite;
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-float-delay {
-  animation: float-delay 8s ease-in-out infinite;
-}
-
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
-.delay-400 { animation-delay: 0.4s; }
-
-.fade-section {
+/* Скролл-reveal: 3D-появление */
+.reveal {
   opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+  transform: translateY(36px) scale(0.98);
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
 }
-
-.fade-section.visible {
+.reveal.reveal-3d {
+  transform: perspective(900px) rotateX(8deg) translateY(48px) scale(0.97);
+  transform-origin: top center;
+}
+.reveal.visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
-/* Smooth scroll padding for fixed header */
+.r-100 { transition-delay: 0.08s; }
+.r-200 { transition-delay: 0.16s; }
+.r-300 { transition-delay: 0.24s; }
+.r-400 { transition-delay: 0.32s; }
+.r-500 { transition-delay: 0.4s; }
+
+/* Скан-линия поверх карточек при наведении — мягкий блик света */
+.scan-line {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 242, 226, 0.7), transparent);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.tilt-card:hover .scan-line {
+  opacity: 0.7;
+}
+
+/* ---------------- Кнопки ---------------- */
+
+.btn-neon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 32px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #0b231b;
+  background: linear-gradient(120deg, #fdf6e7, var(--accent-2) 55%, var(--accent));
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 8px 32px rgba(124, 217, 190, 0.2);
+}
+.btn-neon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 14px 44px rgba(124, 217, 190, 0.35);
+}
+.btn-neon:active { transform: translateY(0); }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--glass);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+.btn-ghost:hover {
+  background: var(--glass-strong);
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(46, 230, 184, 0.18);
+}
+
+/* ---------------- Прочее ---------------- */
+
 section[id] {
-  scroll-margin-top: 80px;
+  scroll-margin-top: 88px;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 9px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--bg);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: var(--color-primary);
-  border-radius: 5px;
+  background: linear-gradient(180deg, var(--accent), #3d9c80);
+  border-radius: 6px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary-dark);
-}
-
-/* Горизонтальная лента без видимого скроллбара (свайп на мобильных) */
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
-/* Line clamp utility */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* Доступность: отключаем тяжёлую анимацию */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .animate-glow,
+  .animate-float-y,
+  .animate-spin-slow {
+    animation: none;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }

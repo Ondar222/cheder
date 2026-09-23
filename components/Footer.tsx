@@ -2,48 +2,54 @@ import { PhoneOutlined, MailOutlined, EnvironmentOutlined, AppleOutlined, Androi
 
 export default function Footer() {
   return (
-    <footer className="bg-primary-dark text-white">
-      {/* Main footer */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14">
+    <footer className="relative bg-[#030605] text-ink overflow-hidden">
+      {/* Верхняя неоновая граница */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
+      {/* Мягкое свечение */}
+      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[60vw] h-64 bg-accent/8 blur-3xl rounded-full pointer-events-none" />
+
+      {/* Основная часть */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-12">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
-          {/* Brand */}
+          {/* Бренд */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <img
-                src="/images/logos/logo.png"
-                alt="Здравница Чедер"
-                className="h-10 w-auto brightness-0 invert"
-              />
+            <div className="flex items-center gap-2.5 mb-5">
+              <span className="relative flex h-11 w-11 items-center justify-center">
+                <span className="absolute inset-0 rounded-xl bg-accent/10 border border-line" />
+                <img
+                  src="/images/logos/logo.png"
+                  alt="Здравница Чедер"
+                  className="relative h-8 w-auto"
+                />
+              </span>
               <div>
-                <div className="text-lg font-bold leading-tight">ЗДРАВНИЦА</div>
-                <div className="text-xs text-white/60 -mt-0.5">ЧЕДЕР</div>
+                <div className="font-display text-[15px] font-semibold tracking-[0.14em] leading-tight">ЗДРАВНИЦА</div>
+                <div className="font-mono-hud text-[10px] text-accent -mt-0.5">ЧЕДЕР </div>
               </div>
             </div>
-            <p className="text-sm text-white/60 leading-relaxed mb-4">
+            <p className="text-sm text-muted leading-relaxed mb-5">
               Курортно-оздоровительный комплекс на берегу соленого озера Чедер в Кызылском кожууне Республики Тыва.
             </p>
             <div className="flex gap-2">
-              <span className="inline-flex items-center gap-1 bg-white/10 rounded-lg px-3 py-1.5 text-xs font-medium">
-                <AppleOutlined className="text-xs" />
-                iOS
+              <span className="inline-flex items-center gap-1.5 glass rounded-lg px-3 py-1.5 font-mono-hud text-[10px] text-ink">
+                <AppleOutlined className="text-xs" /> iOS
               </span>
-              <span className="inline-flex items-center gap-1 bg-white/10 rounded-lg px-3 py-1.5 text-xs font-medium">
-                <AndroidOutlined className="text-xs" />
-                Android
+              <span className="inline-flex items-center gap-1.5 glass rounded-lg px-3 py-1.5 font-mono-hud text-[10px] text-ink">
+                <AndroidOutlined className="text-xs" /> Android
               </span>
             </div>
-            <p className="text-xs text-white/40 mt-2">Yurta App</p>
+            <p className="font-mono-hud text-[10px] text-muted/50 mt-3">Yurta App</p>
           </div>
 
-          {/* Navigation */}
+          {/* Навигация */}
           <div>
-            <h4 className="font-bold text-base mb-4">Навигация</h4>
+            <h4 className="font-mono-hud text-[11px] text-accent mb-5">Навигация</h4>
             <ul className="space-y-2.5">
               {['О нас', 'Услуги', 'Цены', 'Галерея', 'Новости', 'ЧаВо', 'Контакты'].map((item) => (
                 <li key={item}>
                   <a
                     href={`#${item === 'О нас' ? 'hero' : item === 'Галерея' ? 'gallery' : item.toLowerCase()}`}
-                    className="text-sm text-white/60 hover:text-white transition-colors"
+                    className="text-sm text-muted hover:text-accent transition-colors"
                   >
                     {item}
                   </a>
@@ -52,10 +58,10 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Services */}
+          {/* Услуги */}
           <div>
-            <h4 className="font-bold text-base mb-4">Услуги</h4>
-            <ul className="space-y-2.5 text-sm text-white/60">
+            <h4 className="font-mono-hud text-[11px] text-accent mb-5">Услуги</h4>
+            <ul className="space-y-2.5 text-sm text-muted">
               <li>Грязелечение</li>
               <li>Минеральные ванны</li>
               <li>Аромафитотерапия</li>
@@ -66,24 +72,24 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contacts */}
+          {/* Контакты */}
           <div>
-            <h4 className="font-bold text-base mb-4">Контакты</h4>
+            <h4 className="font-mono-hud text-[11px] text-accent mb-5">Контакты</h4>
             <ul className="space-y-3">
-              <li className="flex items-start gap-2.5 text-sm text-white/60">
-                <PhoneOutlined className="mt-0.5 flex-shrink-0" />
-                <a href="tel:+79133405566" className="hover:text-white transition-colors">+7 (913) 340-55-66</a>
+              <li className="flex items-start gap-2.5 text-sm text-muted">
+                <PhoneOutlined className="mt-0.5 text-accent shrink-0" />
+                <a href="tel:+79133405566" className="hover:text-accent transition-colors">+7 (913) 340-55-66</a>
               </li>
-              <li className="flex items-start gap-2.5 text-sm text-white/60">
-                <PhoneOutlined className="mt-0.5 flex-shrink-0" />
-                <a href="tel:+79133440159" className="hover:text-white transition-colors">+7 (913) 344-01-59</a>
+              <li className="flex items-start gap-2.5 text-sm text-muted">
+                <PhoneOutlined className="mt-0.5 text-accent shrink-0" />
+                <a href="tel:+79133440159" className="hover:text-accent transition-colors">+7 (913) 344-01-59</a>
               </li>
-              <li className="flex items-start gap-2.5 text-sm text-white/60">
-                <MailOutlined className="mt-0.5 flex-shrink-0" />
-                <a href="mailto:info.cheder@yandex.ru" className="hover:text-white transition-colors">info.cheder@yandex.ru</a>
+              <li className="flex items-start gap-2.5 text-sm text-muted">
+                <MailOutlined className="mt-0.5 text-accent shrink-0" />
+                <a href="mailto:info.cheder@yandex.ru" className="hover:text-accent transition-colors break-all">info.cheder@yandex.ru</a>
               </li>
-              <li className="flex items-start gap-2.5 text-sm text-white/60">
-                <EnvironmentOutlined className="mt-0.5 flex-shrink-0" />
+              <li className="flex items-start gap-2.5 text-sm text-muted">
+                <EnvironmentOutlined className="mt-0.5 text-accent shrink-0" />
                 <span>г. Кызыл, ул. Интернациональная, 106</span>
               </li>
             </ul>
@@ -91,11 +97,11 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-white/50">
-          <span>© {new Date().getFullYear()} ООО «Здравница Чедер». Все права защищены.</span>
-          <span className="text-xs">Информация на сайте справочная и не является публичной офертой.</span>
+      {/* Нижняя строка */}
+      <div className="relative border-t border-line">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted/60">
+          <span className="font-mono-hud">© {new Date().getFullYear()} ООО «Здравница Чедер» — Все права защищены</span>
+          <span>Информация на сайте справочная и не является публичной офертой.</span>
         </div>
       </div>
     </footer>
