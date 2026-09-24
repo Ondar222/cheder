@@ -366,6 +366,18 @@ body::before {
 
 /* ---------------- Прочее ---------------- */
 
+/*
+ * Сегментированный переключатель «Нет / Да» в форме бронирования:
+ * antd рисует два кнопка-сегмента, растягиваем их на всю ширину поля.
+ */
+.booking-segment {
+  display: flex !important;
+}
+.booking-segment .ant-radio-button-wrapper {
+  flex: 1;
+  text-align: center;
+}
+
 section[id] {
   scroll-margin-top: 88px;
 }

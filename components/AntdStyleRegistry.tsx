@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createCache, extractStyle, StyleProvider } from '@ant-design/cssinjs';
 import { ConfigProvider, theme } from 'antd';
+import ruRU from 'antd/locale/ru_RU';
 import { useServerInsertedHTML } from 'next/navigation';
 
 /**
@@ -24,6 +25,7 @@ export default function AntdStyleRegistry({ children }: { children: React.ReactN
   return (
     <StyleProvider cache={cache}>
       <ConfigProvider
+        locale={ruRU}
         theme={{
           algorithm: theme.darkAlgorithm,
           token: {

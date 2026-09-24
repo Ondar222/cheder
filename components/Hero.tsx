@@ -3,6 +3,7 @@
 import { ArrowDownOutlined, PhoneOutlined, PlayCircleOutlined, CheckOutlined } from '@ant-design/icons';
 import { useEffect, useState, useRef } from 'react';
 import Particles from '@/components/Particles';
+import { useBooking } from '@/components/BookingProvider';
 
 const videos = [
   { src: '/videos/video-main.mp4?t=1', title: 'Лечебные грязи озера Чедер', desc: 'Уникальные природные лечебные грязи с богатой минеральной историей', start: 0 },
@@ -13,6 +14,7 @@ const videos = [
 ];
 
 export default function Hero() {
+  const { openBooking } = useBooking();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [videoError, setVideoError] = useState(false);
@@ -158,10 +160,7 @@ export default function Hero() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <button
-                className="btn-neon"
-                onClick={() => document.getElementById('contacts')?.scrollIntoView({ behavior: 'smooth' })}
-              >
+              <button className="btn-neon" onClick={() => openBooking({ source: 'hero' })}>
                 <PhoneOutlined /> Забронировать
               </button>
               <button className="btn-ghost">

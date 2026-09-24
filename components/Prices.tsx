@@ -1,56 +1,32 @@
 'use client';
 
 import { StarFilled, TagOutlined, FileTextOutlined, CheckOutlined } from '@ant-design/icons';
+import { RATES, formatPrice } from '@/lib/booking';
+import { useBooking } from '@/components/BookingProvider';
 
-const prices = [
-  {
-    period: 'Январь — Февраль 2026',
-    price: '3 500₽',
-    perDay: 'за сутки',
-    included: [
-      'Проживание',
-      'Трёхразовое питание',
-      'Грязелечение',
-      'Минеральная ванна',
-      'Аромафитотерапия',
-      'ЛФК',
-      'Приём терапевта',
-    ],
-    highlight: false,
-  },
-  {
-    period: 'Март — Апрель 2026',
-    price: '3 990₽',
-    perDay: 'за сутки',
-    included: [
-      'Проживание',
-      'Трёхразовое питание',
-      'Грязелечение',
-      'Минеральная ванна',
-      'Аромафитотерапия',
-      'ЛФК',
-      'Приём терапевта',
-    ],
-    highlight: true,
-  },
-  {
-    period: 'Август 2026',
-    price: '5 000₽',
-    perDay: 'за сутки',
-    included: [
-      'Проживание',
-      'Трёхразовое питание',
-      'Грязелечение',
-      'Минеральная ванна',
-      'Аромафитотерапия',
-      'ЛФК',
-      'Приём терапевта',
-    ],
-    highlight: false,
-  },
+/** В стоимость суток входит один и тот же комплекс — не дублируем его в каждом тарифе */
+const INCLUDED = [
+  'Проживание',
+  'Трёхразовое питание',
+  'Грязелечение',
+  'Минеральная ванна',
+  'Аромафитотерапия',
+  'ЛФК',
+  'Приём терапевта',
 ];
 
+/** Рекомендуемый период — подсвечиваемая карточка */
+const HIGHLIGHT_RATE_ID = 'mar-apr';
+
+const prices = RATES.map((rate) => ({
+  ...rate,
+  included: INCLUDED,
+  highlight: rate.id === HIGHLIGHT_RATE_ID,
+}));
+
 export default function Prices() {
+  const { openBooking } = useBooking();
+
   return (
     <section id="prices" className="relative py-20 sm:py-28 overflow-hidden">
       {/* Разделитель-линия */}
@@ -75,9 +51,9 @@ export default function Prices() {
         <div className="sm:max-w-4xl lg:max-w-5xl mx-auto reveal r-200">
           <div className="price-scene -mx-4 sm:mx-0 pt-4 pb-6">
             <div className="flex sm:grid sm:grid-cols-3 gap-3 sm:gap-6 overflow-x-auto sm:overflow-visible no-scrollbar snap-x snap-proximity px-4 sm:px-0">
-              {prices.map((p, i) => (
+              {prices.map((p) => (
                 <div
-                  key={i}
+                  key={p.id}
                   className={`price-card fade-section h-full shrink-0 min-w-[62%] sm:shrink sm:min-w-0 snap-center relative rounded-2xl p-6 sm:p-7 flex flex-col text-center ${
                     p.highlight
                       ? 'glass-strong border-warm/40 shadow-[0_0_60px_rgba(232,207,158,0.12)]'
@@ -96,9 +72,9 @@ export default function Prices() {
                     {p.period}
                   </h3>
                   <div className="font-display italic text-4xl sm:text-[42px] font-semibold text-neon leading-tight whitespace-nowrap">
-                    {p.price}
+                    {formatPrice(p.price)}₽
                   </div>
-                  <div className="text-[11px] tracking-[0.14em] uppercase text-muted mb-5 mt-1">{p.perDay}</div>
+                  <div className="text-[11px] tracking-[0.14em] uppercase text-muted mb-5 mt-1">за сутки</div>
 
                   {/* Компактный список на мобильных */}
                   <div className="border-t border-line pt-3 sm:hidden space-y-1.5 text-left mt-auto">
@@ -124,17 +100,16 @@ export default function Prices() {
                     ))}
                   </div>
 
-                  <a href="tel:+79133405566" className="block mt-5 sm:mt-6">
-                    <button
-                      className={`w-full py-2.5 rounded-full font-semibold text-sm transition-all duration-300 ${
-                        p.highlight
-                          ? 'btn-neon !py-2.5'
-                          : 'btn-ghost !py-2.5 hover:border-accent'
-                      }`}
-                    >
-                      Забронировать
-                    </button>
-                  </a>
+                  <button
+                    onClick={() => openBooking({ rateId: p.id, source: 'prices' })}
+                    className={`w-full mt-5 sm:mt-6 py-2.5 rounded-full font-semibold text-sm transition-all duration-300 ${
+                      p.highlight
+                        ? 'btn-neon !py-2.5'
+                        : 'btn-ghost !py-2.5 hover:border-accent'
+                    }`}
+                  >
+                    Забронировать
+                  </button>
                 </div>
               ))}
             </div>

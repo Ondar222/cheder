@@ -8,7 +8,9 @@ import {
   EnvironmentOutlined,
   MenuOutlined,
   CloseOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
+import { useBooking } from '@/components/BookingProvider';
 
 const navItems = [
   { key: 'about', label: 'О нас' },
@@ -21,6 +23,7 @@ const navItems = [
 ];
 
 export default function Header() {
+  const { openBooking } = useBooking();
   const [scrolled, setScrolled] = useState(false);
   // drawer смонтирован (нужен для анимации выезда/уезда)
   const [mounted, setMounted] = useState(false);
@@ -137,9 +140,12 @@ export default function Header() {
             </nav>
 
             <div className="hidden lg:flex items-center gap-3">
-              <a href="tel:+79133405566" className="btn-neon !py-2.5 !px-6 !text-[13px]">
+              <button
+                className="btn-neon !py-2.5 !px-6 !text-[13px]"
+                onClick={() => openBooking({ source: 'header' })}
+              >
                 <PhoneOutlined /> Забронировать
-              </a>
+              </button>
             </div>
 
             {/* Mobile burger */}
@@ -234,7 +240,19 @@ export default function Header() {
                 className={`shrink-0 border-t border-line px-5 py-5 space-y-3 transition-all duration-500 ease-out
                   ${open ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
               >
-                <a href="tel:+79133405566" className="btn-neon w-full">
+                <button
+                  className="btn-neon w-full"
+                  onClick={() => {
+                    closeMenu();
+                    // Модалку открываем после ухода панели: при размонтировании
+                    // drawer сбрасывает overflow:hidden, и блокировка скролла
+                    // модалки оказалась бы снятой.
+                    setTimeout(() => openBooking({ source: 'header-mobile' }), 460);
+                  }}
+                >
+                  <CalendarOutlined /> Забронировать
+                </button>
+                <a href="tel:+79133405566" className="btn-ghost w-full">
                   <PhoneOutlined /> Позвонить
                 </a>
                 <div className="space-y-1.5 text-sm text-muted">

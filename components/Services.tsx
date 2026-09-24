@@ -1,12 +1,12 @@
 import {
   MedicineBoxOutlined,
-  CloudOutlined,
   EnvironmentOutlined,
   AimOutlined,
   UserOutlined,
   CoffeeOutlined,
   ThunderboltOutlined,
-  HeartOutlined,
+  ExperimentOutlined,
+  SkinOutlined,
 } from '@ant-design/icons';
 import TiltCard from '@/components/TiltCard';
 

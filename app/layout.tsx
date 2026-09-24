@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope, JetBrains_Mono } from "next/font/google";
 import AntdStyleRegistry from "@/components/AntdStyleRegistry";
+import { BookingProvider } from "@/components/BookingProvider";
 import "./globals.css";
 
 // Элегантная типографика «отеля будущего» (все — с кириллицей):
@@ -48,7 +49,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/favicon.png" sizes="any" />
       </head>
       <body className="min-h-screen flex flex-col antialiased">
-        <AntdStyleRegistry>{children}</AntdStyleRegistry>
+        <AntdStyleRegistry>
+          <BookingProvider>{children}</BookingProvider>
+        </AntdStyleRegistry>
       </body>
     </html>
   );
