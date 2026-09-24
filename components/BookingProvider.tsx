@@ -1,8 +1,15 @@
 'use client';
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import BookingModal from '@/components/BookingModal';
+import dynamic from 'next/dynamic';
 import { DEFAULT_RATE_ID, DEFAULT_ROOM_TYPE_ID } from '@/lib/booking';
+
+// Модалка грузится по первому клику «Забронировать», а не на лендинге:
+// DatePicker/Select/Radio из antd весят ощутимо, а нужны не каждому гостю.
+const BookingModal = dynamic(() => import('@/components/BookingModal'), {
+  ssr: false,
+  loading: () => null,
+});
 
 export type BookingOpenOptions = {
   /** Тариф по умолчанию — обычно берётся из карточки, где кликнули */
