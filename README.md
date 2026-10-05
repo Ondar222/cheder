@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Сайт здравницы «Чедер»
 
-## Getting Started
+Лендинг курорта на берегу озера Чедер (Next.js App Router, Tailwind v4, antd v6)
+и кабинет менеджера для заявок и броней.
 
-First, run the development server:
+## Запуск
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Скрипты: `dev`, `build`, `start`, `lint`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Переменные окружения
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`.env` в репозиторий не кладётся (`.gitignore`), значения задаются на сервере.
 
-## Learn More
+| Переменная | Зачем |
+| --- | --- |
+| `VK_ACCESS_TOKEN`, `VK_OWNER_ID` | Посты группы vk.com/z_cheder в секции «Новости» |
+| `NEXT_PUBLIC_YURTA_API` | API платформы Yurta для админки. По умолчанию `https://api.yurta.site` |
+| `NEXT_PUBLIC_BOOKING_WEBHOOK` | Необязательно: приёмник заявок (Telegram-бот, CRM). Без него заявки остаются только в админке |
 
-To learn more about Next.js, take a look at the following resources:
+## Кабинет менеджера — `/admin`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Заявки** (`/admin`) — что отправили из формы «Забронировать»: контакты, даты,
+  сумма, комментарий. Отсюда заявку можно перевести в бронь.
+- **Брони** (`/admin/bookings`) — заезды санатория из Yurta за выбранный период и
+  загрузка номерного фонда на сегодня. Список только для чтения: оплату,
+  заселение и договор меняйте в партнёрском кабинете.
+- **Создать бронь** (`/admin/new`) — комната из свободных на выбранные даты
+  (занятые не дадут посадить двух гостей в один номер), гости, комментарий.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Вход
 
-## Deploy on Vercel
+Отдельной регистрации нет: вход под тем же логином и паролем, что в партнёрском
+кабинете Yurta (`POST /auth/login/password`). Токены кладутся в `localStorage`
+этого браузера — как в partners-next, поэтому у админки нет своего сервера,
+cookie и middleware. Право смотреть брони санатория даёт роль аккаунта на
+стороне API.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Как устроено
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Файл | Роль |
+| --- | --- |
+| `lib/session.ts` | Токены и пользователь в localStorage, снимок для `useSyncExternalStore` |
+| `lib/api.ts` | Fetch к API Yurta: конверт `{ status, message, data }`, Bearer, повтор запроса после `/auth/refresh` на 401 |
+| `lib/auth.ts` | `login()`, `logout()`, хук `useAdminAuth()` |
+| `lib/bookingApi.ts` | Решётка `/v4/booking/grid` (комнаты + брони), создание `/v2/booking/room/prepaid`, подписи статусов. Даты — unix-секунды, snake_case нормализуется в camelCase |
+| `lib/leads.ts` | Заявки с сайта в localStorage: статусы, привязка к созданной броне |
+| `lib/datetime.ts` | Unix-секунды ↔ Dayjs, форматирование дат |
+| `components/admin/*` | Оболочка с guard, форма входа, заявки, брони, создание брони |
+
+### Честное ограничение
+
+У сайта нет своего бэкенда, а в API Yurta сущности «заявка» нет — там сразу
+бронь. Поэтому заявка лежит в localStorage того браузера, где её отправили.
+Чтобы менеджер видел заявки со всех устройств, нужен приёмник: укажите
+`NEXT_PUBLIC_BOOKING_WEBHOOK`, и `submitBooking()` параллельно начнёт слать туда
+тот же JSON. Экран «Заявки» при этом остаётся рабочим местом менеджера: статус,
+перевод в бронь, история.
+
+## Заявки с лендинга
+
+`submitBooking()` (`lib/booking.ts`) сохраняет заявку через `lib/leads.ts` и,
+если задан `NEXT_PUBLIC_BOOKING_WEBHOOK`, отправляет её туда. Гость в любом
+случае видит подтверждение — форма не должна терять людей молча.

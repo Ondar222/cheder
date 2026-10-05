@@ -7,6 +7,8 @@
  * по которой гость кликнул «Забронировать».
  */
 
+import { addLead } from '@/lib/leads';
+
 /** Категория номера. Цена не привязана: на сайте тариф «всё включено» единый. */
 export type RoomType = {
   id: string;
@@ -162,16 +164,19 @@ export function isPhoneComplete(value: string): boolean {
 /**
  * Отправка заявки.
  *
- * Бэкенда у сайта пока нет, поэтому приёмник задаётся переменной
- * NEXT_PUBLIC_BOOKING_WEBHOOK (Telegram-бот, CRM, свой API — что угодно,
- * принимающее JSON). Без переменной заявка остаётся в консоли, но гость всё
- * равно видит подтверждение: форма не должна «молча» терять людей.
+ * Заявка всегда сохраняется локально (lib/leads.ts) — её видит менеджер в
+ * админке /admin и может перевести в бронь Yurta. Дополнительно, если задан
+ * NEXT_PUBLIC_BOOKING_WEBHOOK (Telegram-бот, CRM, свой API), заявка уходит туда:
+ * админка приёмник не заменяет, а подстраховывает. Гость в любом случае видит
+ * подтверждение — форма не должна «молча» терять людей.
  */
 export async function submitBooking(payload: BookingPayload): Promise<void> {
+  addLead(payload);
+
   const endpoint = process.env.NEXT_PUBLIC_BOOKING_WEBHOOK;
 
   if (!endpoint) {
-    console.info('[booking] NEXT_PUBLIC_BOOKING_WEBHOOK не задан, заявка:', payload);
+    console.info('[booking] NEXT_PUBLIC_BOOKING_WEBHOOK не задан, заявка сохранена локально:', payload);
     return;
   }
 

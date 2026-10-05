@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     "здравница чедер",
   ],
   icons: {
-    icon: "/favicon.png",
+    icon: "/images/logos/logo.png",
   },
 };
 
@@ -46,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <head>
-        <link rel="icon" href="/favicon.png" sizes="any" />
+        <link rel="icon" href="/images/logos/logo.png" sizes="any" />
       </head>
       <body className="min-h-screen flex flex-col antialiased">
         <AntdStyleRegistry>
