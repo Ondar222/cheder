@@ -3,14 +3,15 @@
  * partners-next. Отдельной регистрации в админке нет: доступ к броням санатория
  * даёт роль аккаунта на стороне API.
  *
- * Токены кладём в localStorage (как в partners-next), поэтому админка — чистый
- * клиент: ни cookie, ни middleware, ни своего сервера.
+ * Токены кладём в localStorage (как в partners-next), но сам логин делает сервер
+ * сайта (/api/admin/session): только так он может выдать httpOnly-cookie сессии,
+ * по которой кабинет забирает заявки гостей. Без неё список заявок был бы доступен
+ * любому, кто знает адрес приёмника, а в заявке — ФИО и телефон человека.
  */
 
 'use client';
 
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
-import { publicRequest } from '@/lib/api';
 import {
   clearSession,
   getServerSessionSnapshot,
@@ -27,7 +28,7 @@ export type { SessionUser };
 
 export type LoginResult = { ok: true; user: SessionUser | null } | { ok: false; message: string };
 
-/** Ответ /auth/login/password и /auth/refresh */
+/** Ответ /api/admin/session: data — токены, их же возвращает /auth/login/password */
 type AuthResponse = {
   access_token?: string;
   expires?: number;
@@ -38,23 +39,32 @@ type AuthResponse = {
 
 export async function login(email: string, password: string): Promise<LoginResult> {
   try {
-    const { data } = await publicRequest<AuthResponse>('/auth/login/password', {
+    const response = await fetch('/api/admin/session', {
       method: 'POST',
-      body: { email: email.trim(), password },
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), password }),
+      cache: 'no-store',
     });
-    saveSession(data);
+
+    const payload = (await response.json().catch(() => null)) as
+      | { ok?: boolean; message?: string; data?: AuthResponse }
+      | null;
+
+    if (!response.ok || !payload?.data) {
+      return { ok: false, message: payload?.message ?? 'Не удалось войти' };
+    }
+
+    saveSession(payload.data);
     return { ok: true, user: getSessionUser() };
-  } catch (error) {
-    const message =
-      error && typeof error === 'object' && 'message' in error
-        ? String((error as { message: unknown }).message)
-        : 'Не удалось войти';
-    return { ok: false, message };
+  } catch {
+    return { ok: false, message: 'Нет связи с сервером, попробуйте позднее' };
   }
 }
 
 export function logout(): void {
   clearSession();
+  // Сессионную cookie может снять только сервер; сама она не видна скриптам
+  void fetch('/api/admin/session', { method: 'DELETE' }).catch(() => undefined);
 }
 
 export type AdminAuthState = {

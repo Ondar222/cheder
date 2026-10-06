@@ -7,7 +7,7 @@
  * по которой гость кликнул «Забронировать».
  */
 
-import { addLead } from '@/lib/leads';
+import { pushLead } from '@/lib/leads';
 
 /** Категория номера. Цена не привязана: на сайте тариф «всё включено» единый. */
 export type RoomType = {
@@ -164,19 +164,26 @@ export function isPhoneComplete(value: string): boolean {
 /**
  * Отправка заявки.
  *
- * Заявка всегда сохраняется локально (lib/leads.ts) — её видит менеджер в
- * админке /admin и может перевести в бронь Yurta. Дополнительно, если задан
- * NEXT_PUBLIC_BOOKING_WEBHOOK (Telegram-бот, CRM, свой API), заявка уходит туда:
- * админка приёмник не заменяет, а подстраховывает. Гость в любом случае видит
- * подтверждение — форма не должна «молча» терять людей.
+ * Заявка уходит на сервер сайта (POST /api/leads) — только там её увидит
+ * менеджер в кабинете /admin, независимо от того, с какого устройства бронирует
+ * гость. Если приёмник недоступен, lib/leads.ts кладёт заявку в localStorage
+ * этого браузера, и форма всё равно подтверждается. Дополнительно, если задан
+ * NEXT_PUBLIC_BOOKING_WEBHOOK (Telegram-бот, CRM), заявка параллельно уходит
+ * туда. Гость в любом случае видит подтверждение — форма не должна «молча»
+ * терять людей.
  */
 export async function submitBooking(payload: BookingPayload): Promise<void> {
-  addLead(payload);
+  const { onServer } = await pushLead(payload);
 
   const endpoint = process.env.NEXT_PUBLIC_BOOKING_WEBHOOK;
 
   if (!endpoint) {
-    console.info('[booking] NEXT_PUBLIC_BOOKING_WEBHOOK не задан, заявка сохранена локально:', payload);
+    console.info(
+      onServer
+        ? '[booking] заявка принята сервером, NEXT_PUBLIC_BOOKING_WEBHOOK не задан:'
+        : '[booking] сервер недоступен, заявка в локальном резерве, NEXT_PUBLIC_BOOKING_WEBHOOK не задан:',
+      payload,
+    );
     return;
   }
 
