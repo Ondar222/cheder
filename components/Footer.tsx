@@ -2,7 +2,7 @@ import { PhoneOutlined, MailOutlined, EnvironmentOutlined, AppleOutlined, Androi
 
 export default function Footer() {
   return (
-    <footer className="relative bg-[#030605] text-ink overflow-hidden">
+    <footer className="relative bg-[#100e0b] text-ink overflow-hidden">
       {/* Верхняя неоновая граница */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
       {/* Мягкое свечение */}

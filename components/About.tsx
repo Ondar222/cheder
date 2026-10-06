@@ -71,7 +71,7 @@ export default function About() {
                 {cards.slice(0, 2).map((card, i) => (
                   <TiltCard
                     key={i}
-                    className="glass rounded-2xl p-6 h-44 flex flex-col justify-end cursor-default shadow-[0_18px_50px_rgba(0,0,0,0.35)] hover:shadow-[0_24px_70px_rgba(124,217,190,0.12)]"
+                    className="glass rounded-2xl p-6 h-44 flex flex-col justify-end cursor-default shadow-[0_18px_50px_rgba(0,0,0,0.35)] hover:shadow-[0_24px_70px_rgba(224,212,182,0.12)]"
                   >
                     <div className="mb-2 text-accent text-2xl depth-1">{card.icon}</div>
                     <h4 className="font-display text-lg font-semibold text-ink leading-tight depth-1 italic">{card.title}</h4>
@@ -83,7 +83,7 @@ export default function About() {
                 {cards.slice(2, 4).map((card, i) => (
                   <TiltCard
                     key={i}
-                    className="glass rounded-2xl p-6 h-52 flex flex-col justify-end cursor-default shadow-[0_18px_50px_rgba(0,0,0,0.35)] hover:shadow-[0_24px_70px_rgba(232,207,158,0.12)]"
+                    className="glass rounded-2xl p-6 h-52 flex flex-col justify-end cursor-default shadow-[0_18px_50px_rgba(0,0,0,0.35)] hover:shadow-[0_24px_70px_rgba(224,212,182,0.12)]"
                   >
                     <div className={`mb-2 text-2xl depth-1 ${i % 2 === 0 ? 'text-warm' : 'text-accent'}`}>{card.icon}</div>
                     <h4 className="font-display text-lg font-semibold text-ink leading-tight depth-1 italic">{card.title}</h4>

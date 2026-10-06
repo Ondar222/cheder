@@ -366,7 +366,7 @@ export default function CreateBookingForm() {
               size="large"
               loading={submitting}
               disabled={rooms.length === 0}
-              className="!h-12 !px-8 !rounded-full !border-0 !bg-gradient-to-r !from-[#fdf6e7] !via-[#c9f2e2] !to-[#7cd9be] !text-[#0b231b] !font-semibold"
+              className="!h-12 !px-8 !rounded-full !border-0 !bg-gradient-to-r !from-[#fffdf6] !via-[#f0e9d8] !to-[#ddd0b0] !text-[#241a08] !font-semibold"
             >
               Создать бронь
             </Button>

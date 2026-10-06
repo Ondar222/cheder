@@ -95,7 +95,7 @@ export default function Hero() {
             alt="Здравница Чедер"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-[#050807]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-[#17140f]" />
         </div>
       )}
 
@@ -119,7 +119,7 @@ export default function Hero() {
           >
             <source src={video.src} type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/35 to-[#050807]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/35 to-[#17140f]" />
         </div>
       ))}
 
@@ -151,7 +151,7 @@ export default function Hero() {
               <br />
               <span className="italic text-neon">и время для себя</span>
               <br />
-              <span className="text-3xl sm:text-4xl lg:text-[42px] text-warm italic font-normal">на берегу озера Чедер</span>
+              <span className="text-3xl sm:text-4xl lg:text-[42px] text-gradient-warm italic font-normal">на берегу озера Чедер</span>
             </h1>
 
             <p className="text-lg text-muted mb-10 max-w-xl leading-relaxed">
@@ -189,7 +189,7 @@ export default function Hero() {
                   key={index}
                   onClick={() => goToSlide(index)}
                   className={`h-1 rounded-full transition-all duration-300 ${
-                    index === currentSlide ? 'w-10 bg-accent shadow-[0_0_10px_rgba(124,217,190,0.7)]' : 'w-4 bg-white/20 hover:bg-white/40'
+                    index === currentSlide ? 'w-10 bg-accent shadow-[0_0_10px_rgba(224,212,182,0.7)]' : 'w-4 bg-white/20 hover:bg-white/40'
                   }`}
                   aria-label={`Слайд ${index + 1}`}
                 />

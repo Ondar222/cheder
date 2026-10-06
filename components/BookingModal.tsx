@@ -218,7 +218,7 @@ export default function BookingModal({
                     {formatPrice(EXTRA_GUEST_PRICE)} р. за сутки
                   </span>
                 </span>
-                <span className="font-display italic text-xl text-warm whitespace-nowrap">
+                <span className="font-display italic text-xl text-gradient-warm whitespace-nowrap">
                   +{formatPrice(EXTRA_GUEST_PRICE * guests)}
                   <span className="text-sm not-italic text-muted ml-1">р.</span>
                 </span>
@@ -413,7 +413,7 @@ export default function BookingModal({
               size="large"
               loading={submitting}
               icon={<CheckOutlined />}
-              className="!mt-4 !h-12 !rounded-full !border-0 !bg-gradient-to-r !from-[#fdf6e7] !via-[#c9f2e2] !to-[#7cd9be] !text-[#0b231b] !font-semibold !text-[15px] !shadow-[0_8px_32px_rgba(124,217,190,0.25)] hover:!shadow-[0_14px_44px_rgba(124,217,190,0.4)] hover:-translate-y-0.5 transition-all duration-300"
+              className="!mt-4 !h-12 !rounded-full !border-0 !bg-gradient-to-r !from-[#fffdf6] !via-[#f0e9d8] !to-[#ddd0b0] !text-[#241a08] !font-semibold !text-[15px] !shadow-[0_8px_32px_rgba(224,212,182,0.25)] hover:!shadow-[0_14px_44px_rgba(224,212,182,0.4)] hover:-translate-y-0.5 transition-all duration-300"
             >
               Отправить заявку
             </Button>

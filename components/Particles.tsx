@@ -68,7 +68,7 @@ export default function Particles({ className = '' }: { className?: string }) {
         const glow = 0.25 + Math.sin(p.phase) * 0.2;
         const radius = p.r * (1 + Math.sin(p.phase) * 0.2);
 
-        const color = p.warm ? '232, 207, 158' : '124, 217, 190';
+        const color = p.warm ? '232, 207, 158' : '221, 208, 176';
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 5);
         grad.addColorStop(0, `rgba(${color}, ${(glow + 0.3).toFixed(2)})`);
         grad.addColorStop(0.4, `rgba(${color}, ${glow.toFixed(2)})`);
@@ -82,8 +82,8 @@ export default function Particles({ className = '' }: { className?: string }) {
         // Ядро светлячка
         ctx.beginPath();
         ctx.fillStyle = p.warm
-          ? `rgba(247, 234, 208, ${(glow + 0.35).toFixed(2)})`
-          : `rgba(201, 242, 226, ${(glow + 0.35).toFixed(2)})`;
+          ? `rgba(240, 233, 216, ${(glow + 0.35).toFixed(2)})`
+          : `rgba(240, 233, 216, ${(glow + 0.35).toFixed(2)})`;
         ctx.arc(p.x, p.y, radius * 0.7, 0, Math.PI * 2);
         ctx.fill();
       }

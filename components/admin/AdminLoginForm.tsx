@@ -89,7 +89,7 @@ export default function AdminLoginForm() {
           size="large"
           block
           loading={submitting}
-          className="!h-12 !rounded-full !border-0 !bg-gradient-to-r !from-[#fdf6e7] !via-[#c9f2e2] !to-[#7cd9be] !text-[#0b231b] !font-semibold !shadow-[0_8px_32px_rgba(124,217,190,0.25)] hover:!shadow-[0_14px_44px_rgba(124,217,190,0.4)] transition-all duration-300"
+          className="!h-12 !rounded-full !border-0 !bg-gradient-to-r !from-[#fffdf6] !via-[#f0e9d8] !to-[#ddd0b0] !text-[#241a08] !font-semibold !shadow-[0_8px_32px_rgba(224,212,182,0.25)] hover:!shadow-[0_14px_44px_rgba(224,212,182,0.4)] transition-all duration-300"
         >
           Войти
         </Button>

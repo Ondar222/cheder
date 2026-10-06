@@ -138,13 +138,13 @@ export default function Gallery() {
                 onClick={() => setActiveFilter(cat)}
                 className={`px-5 py-2 rounded-full text-[13px] font-medium transition-all duration-300 ${
                   activeFilter === cat
-                    ? 'bg-gradient-to-r from-[#fdf6e7] to-accent-2 text-[#0b231b] shadow-[0_0_24px_rgba(124,217,190,0.25)] scale-105'
+                    ? 'bg-gradient-to-r from-[#fffdf6] to-accent-2 text-[#241a08] shadow-[0_0_24px_rgba(224,212,182,0.25)] scale-105'
                     : 'glass text-muted hover:text-ink hover:border-accent/40'
                 }`}
               >
                 {cat}
                 {activeFilter === cat && (
-                  <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-[#0b231b]/60 animate-pulse" />
+                  <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-[#241a08]/60 animate-pulse" />
                 )}
               </button>
             ))}
@@ -155,7 +155,7 @@ export default function Gallery() {
             {filteredPhotos.map((photo, index) => (
               <div
                 key={index}
-                className="gallery-item group relative overflow-hidden rounded-xl glass cursor-pointer aspect-square shadow-[0_8px_30px_rgba(0,0,0,0.35)] hover:shadow-[0_20px_50px_rgba(46,230,184,0.15)]"
+                className="gallery-item group relative overflow-hidden rounded-xl glass cursor-pointer aspect-square shadow-[0_8px_30px_rgba(0,0,0,0.35)] hover:shadow-[0_20px_50px_rgba(224,212,182,0.15)]"
                 onClick={() => openImage(photo.src)}
               >
                 <img
@@ -190,13 +190,13 @@ export default function Gallery() {
             {videos.map((video, index) => (
               <div
                 key={index}
-                className="gallery-item group relative rounded-2xl overflow-hidden glass cursor-pointer shadow-[0_10px_40px_rgba(0,0,0,0.3)] hover:shadow-[0_20px_60px_rgba(124,217,190,0.12)]"
+                className="gallery-item group relative rounded-2xl overflow-hidden glass cursor-pointer shadow-[0_10px_40px_rgba(0,0,0,0.3)] hover:shadow-[0_20px_60px_rgba(224,212,182,0.12)]"
               >
-                <div className="relative overflow-hidden aspect-video bg-gradient-to-br from-[#12201a] to-[#0d1a14] flex items-center justify-center">
+                <div className="relative overflow-hidden aspect-video bg-gradient-to-br from-[#262119] to-[#1b1712] flex items-center justify-center">
                   {/* Мягкая рамка-виньетка */}
                   <div className="absolute inset-4 rounded-xl border border-accent/12" />
                   <span className="text-[11px] tracking-[0.2em] uppercase text-accent/50 mb-10">{video.date}</span>
-                  <div className="w-14 h-14 rounded-full bg-accent/10 border border-accent/40 flex items-center justify-center backdrop-blur-sm group-hover:bg-accent/25 group-hover:scale-110 transition-all duration-300 shadow-[0_0_30px_rgba(124,217,190,0.2)]">
+                  <div className="w-14 h-14 rounded-full bg-accent/10 border border-accent/40 flex items-center justify-center backdrop-blur-sm group-hover:bg-accent/25 group-hover:scale-110 transition-all duration-300 shadow-[0_0_30px_rgba(224,212,182,0.2)]">
                     <VideoCameraOutlined className="text-xl text-accent" />
                   </div>
                 </div>

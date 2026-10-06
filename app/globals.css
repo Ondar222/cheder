@@ -2,31 +2,31 @@
 
 /* ============================================================
    ЗДРАВНИЦА ЧЕДЕР // Дизайн-система «Отель будущего»
-   Вечернее озеро: полумрак, жемчуг, мягкий аквамарин, золото
+   Вечернее озеро: полумрак, жемчуг и золото — одна тёплая гамма
    ============================================================ */
 
 @theme {
-  --color-bg: #081210;
-  --color-bg-2: #0d1b16;
-  --color-ink: #f3eee3;
-  --color-muted: #a3b8ad;
-  --color-accent: #7cd9be;
-  --color-accent-2: #c9f2e2;
+  --color-bg: #17140f;
+  --color-bg-2: #201c15;
+  --color-ink: #f7f4ec;
+  --color-muted: #c7c0b1;
+  --color-accent: #ddd0b0;
+  --color-accent-2: #f0e9d8;
   --color-warm: #e8cf9e;
-  --color-line: rgba(124, 217, 190, 0.14);
+  --color-line: rgba(221, 208, 176, 0.16);
 }
 
 :root {
-  --bg: #081210;
-  --bg-2: #0d1b16;
-  --ink: #f3eee3;
-  --muted: #a3b8ad;
-  --accent: #7cd9be;
-  --accent-2: #c9f2e2;
+  --bg: #17140f;
+  --bg-2: #201c15;
+  --ink: #f7f4ec;
+  --muted: #c7c0b1;
+  --accent: #ddd0b0;
+  --accent-2: #f0e9d8;
   --warm: #e8cf9e;
-  --line: rgba(124, 217, 190, 0.14);
-  --glass: rgba(243, 238, 227, 0.05);
-  --glass-strong: rgba(243, 238, 227, 0.08);
+  --line: rgba(221, 208, 176, 0.16);
+  --glass: rgba(247, 244, 236, 0.07);
+  --glass-strong: rgba(247, 244, 236, 0.11);
 }
 
 html {
@@ -48,13 +48,13 @@ body::before {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(55vw 55vw at 82% -12%, rgba(124, 217, 190, 0.09), transparent 62%),
-    radial-gradient(45vw 45vw at -5% 38%, rgba(232, 207, 158, 0.07), transparent 58%),
-    radial-gradient(50vw 50vw at 65% 115%, rgba(124, 217, 190, 0.06), transparent 60%);
+    radial-gradient(55vw 55vw at 82% -12%, rgba(224, 212, 182, 0.13), transparent 62%),
+    radial-gradient(45vw 45vw at -5% 38%, rgba(232, 207, 158, 0.10), transparent 58%),
+    radial-gradient(50vw 50vw at 65% 115%, rgba(224, 212, 182, 0.09), transparent 60%);
 }
 
 ::selection {
-  background: rgba(124, 217, 190, 0.32);
+  background: rgba(224, 212, 182, 0.4);
   color: #ffffff;
 }
 
@@ -71,17 +71,20 @@ body::before {
   font-size: 0.92em;
 }
 
-/* Мягкий градиентный текст: жемчуг → аквамарин */
+/* Мягкий градиентный текст: жемчуг → золото */
 .text-neon {
   background: linear-gradient(105deg, #fdf9ef 0%, var(--accent-2) 55%, var(--accent) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 28px rgba(124, 217, 190, 0.28));
+  filter: drop-shadow(0 0 28px rgba(224, 212, 182, 0.28));
 }
 
-.text-warm {
-  background: linear-gradient(105deg, var(--warm), #f7ead0);
+/* Градиентное золото для заголовков. Не называть .text-warm: этот класс
+   генерирует Tailwind из @theme (--color-warm) как обычный цвет текста,
+   и перекрывал бы его — иконки с fill="currentColor" становились прозрачными */
+.text-gradient-warm {
+  background: linear-gradient(105deg, var(--warm), #f0e9d8);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -98,7 +101,7 @@ body::before {
 
 .glass-strong {
   background: var(--glass-strong);
-  border: 1px solid rgba(124, 217, 190, 0.2);
+  border: 1px solid rgba(224, 212, 182, 0.2);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
 }
@@ -156,8 +159,8 @@ body::before {
 /* Технологичная сетка-фон */
 .grid-bg {
   background-image:
-    linear-gradient(rgba(124, 217, 190, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(124, 217, 190, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(224, 212, 182, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(224, 212, 182, 0.04) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, black 30%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, black 30%, transparent 75%);
@@ -187,7 +190,7 @@ body::before {
   background: radial-gradient(
     420px circle at var(--glare-x, 50%) var(--glare-y, 50%),
     rgba(253, 249, 239, 0.1),
-    rgba(124, 217, 190, 0.05) 40%,
+    rgba(224, 212, 182, 0.05) 40%,
     transparent 65%
   );
 }
@@ -310,7 +313,7 @@ body::before {
   right: 12%;
   top: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(201, 242, 226, 0.7), transparent);
+  background: linear-gradient(90deg, transparent, rgba(240, 233, 216, 0.7), transparent);
   opacity: 0;
   transition: opacity 0.4s ease;
 }
@@ -329,16 +332,16 @@ body::before {
   border-radius: 999px;
   font-weight: 600;
   font-size: 15px;
-  color: #0b231b;
-  background: linear-gradient(120deg, #fdf6e7, var(--accent-2) 55%, var(--accent));
+  color: #241a08;
+  background: linear-gradient(120deg, #fffdf6, var(--accent-2) 55%, var(--accent));
   border: 0;
   cursor: pointer;
   transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 8px 32px rgba(124, 217, 190, 0.2);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 8px 32px rgba(224, 212, 182, 0.2);
 }
 .btn-neon:hover {
   transform: translateY(-2px);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 14px 44px rgba(124, 217, 190, 0.35);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 14px 44px rgba(224, 212, 182, 0.35);
 }
 .btn-neon:active { transform: translateY(0); }
 
@@ -361,7 +364,7 @@ body::before {
 .btn-ghost:hover {
   background: var(--glass-strong);
   border-color: var(--accent);
-  box-shadow: 0 8px 32px rgba(46, 230, 184, 0.18);
+  box-shadow: 0 8px 32px rgba(224, 212, 182, 0.18);
 }
 
 /* ---------------- Прочее ---------------- */
@@ -389,7 +392,7 @@ section[id] {
   background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--accent), #3d9c80);
+  background: linear-gradient(180deg, var(--accent), #94845f);
   border-radius: 6px;
 }
 

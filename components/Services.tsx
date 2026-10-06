@@ -85,7 +85,7 @@ export default function Services() {
             <TiltCard
               key={i}
               maxTilt={8}
-              className={`reveal reveal-3d r-${((i % 4) + 1) * 100} glass rounded-2xl p-5 h-full cursor-pointer group shadow-[0_10px_40px_rgba(0,0,0,0.3)] hover:shadow-[0_20px_60px_rgba(124,217,190,0.1)]`}
+              className={`reveal reveal-3d r-${((i % 4) + 1) * 100} glass rounded-2xl p-5 h-full cursor-pointer group shadow-[0_10px_40px_rgba(0,0,0,0.3)] hover:shadow-[0_20px_60px_rgba(224,212,182,0.1)]`}
             >
               <div className="flex items-start justify-between mb-4">
                 <div

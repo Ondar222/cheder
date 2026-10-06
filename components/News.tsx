@@ -84,7 +84,7 @@ function NewsCard({ item, index }: { item: NewsItem; index: number }) {
       href={item.url ?? VK_GROUP_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className={`fade-section block h-full shrink-0 min-w-[80%] max-w-[85%] sm:shrink sm:min-w-0 sm:max-w-none snap-center group glass rounded-2xl overflow-hidden transition-all duration-300 hover:border-accent/40 hover:shadow-[0_20px_60px_rgba(46,230,184,0.1)] hover:-translate-y-1 r-${((index % 4) + 1) * 100}`}
+      className={`fade-section block h-full shrink-0 min-w-[80%] max-w-[85%] sm:shrink sm:min-w-0 sm:max-w-none snap-center group glass rounded-2xl overflow-hidden transition-all duration-300 hover:border-accent/40 hover:shadow-[0_20px_60px_rgba(224,212,182,0.1)] hover:-translate-y-1 r-${((index % 4) + 1) * 100}`}
     >
       {item.image && (
         <div className="relative h-40 overflow-hidden bg-bg-2">
@@ -96,7 +96,7 @@ function NewsCard({ item, index }: { item: NewsItem; index: number }) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
           {item.video && (
-            <span className="absolute inset-0 flex items-center justify-center text-accent drop-shadow-[0_0_12px_rgba(46,230,184,0.8)]">
+            <span className="absolute inset-0 flex items-center justify-center text-accent drop-shadow-[0_0_12px_rgba(224,212,182,0.8)]">
               <PlayCircleOutlined className="text-4xl" />
             </span>
           )}

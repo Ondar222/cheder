@@ -34,7 +34,7 @@ export default function Contacts() {
     <section id="contacts" className="relative py-20 sm:py-28 bg-bg-2/40 overflow-hidden">
       {/* Разделитель-линия */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[min(72rem,92%)] h-px bg-gradient-to-r from-transparent via-line to-transparent" />
-      <div className="absolute inset-0 bg-[radial-gradient(60vw_40vw_at_50%_0%,rgba(124,217,190,0.05),transparent_70%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(60vw_40vw_at_50%_0%,rgba(224,212,182,0.05),transparent_70%)] pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12 reveal">
@@ -205,7 +205,7 @@ export default function Contacts() {
                     htmlType="submit"
                     icon={<SendOutlined />}
                     size="large"
-                    className="!h-12 !px-8 !rounded-full !border-0 !bg-gradient-to-r !from-[#9ff5dc] !to-[#2ee6b8] !text-[#04120d] !font-semibold !shadow-[0_8px_32px_rgba(46,230,184,0.25)] hover:!shadow-[0_14px_44px_rgba(46,230,184,0.45)] hover:-translate-y-0.5 transition-all duration-300 !text-[15px]"
+                    className="!h-12 !px-8 !rounded-full !border-0 !bg-gradient-to-r !from-[#f0e9d8] !to-[#ddd0b0] !text-[#1c1408] !font-semibold !shadow-[0_8px_32px_rgba(224,212,182,0.25)] hover:!shadow-[0_14px_44px_rgba(224,212,182,0.45)] hover:-translate-y-0.5 transition-all duration-300 !text-[15px]"
                   >
                     Отправить заявку
                   </Button>

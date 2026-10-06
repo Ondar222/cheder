@@ -187,7 +187,7 @@ export default function Header() {
               onTouchStart={onTouchStart}
               onTouchEnd={onTouchEnd}
               className={`fixed top-0 right-0 bottom-0 z-[100] w-full sm:w-[440px]
-                bg-[#070d0b] border-l border-line shadow-2xl flex flex-col
+                bg-[#14110c] border-l border-line shadow-2xl flex flex-col
                 transition-transform duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)]
                 ${open ? 'translate-x-0' : 'translate-x-full'}`}
             >

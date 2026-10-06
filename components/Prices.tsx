@@ -56,13 +56,13 @@ export default function Prices() {
                   key={p.id}
                   className={`price-card fade-section h-full shrink-0 min-w-[62%] sm:shrink sm:min-w-0 snap-center relative rounded-2xl p-6 sm:p-7 flex flex-col text-center ${
                     p.highlight
-                      ? 'glass-strong border-warm/40 shadow-[0_0_60px_rgba(232,207,158,0.12)]'
+                      ? 'glass-strong border-warm/40 shadow-[0_0_60px_rgba(224,212,182,0.12)]'
                       : 'glass shadow-[0_10px_40px_rgba(0,0,0,0.3)]'
                   }`}
                 >
                   {p.highlight && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#f7ead0] to-warm text-[#1c1408] px-3.5 py-1 text-[10px] font-semibold tracking-[0.16em] uppercase">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#f0e9d8] to-warm text-[#1c1408] px-3.5 py-1 text-[10px] font-semibold tracking-[0.16em] uppercase">
                         <StarFilled className="text-[9px]" /> Рекомендуем
                       </span>
                     </div>
@@ -145,7 +145,7 @@ export default function Prices() {
               <h3 className="font-display text-xl font-semibold text-ink italic">Дневное пребывание «Всё включено»</h3>
             </div>
             <p className="text-muted text-sm leading-relaxed">
-              Проведите время с 9:00 до 18:00 с пользой для здоровья. Стоимость — <strong className="text-warm">3 000 ₽</strong>.
+              Проведите время с 9:00 до 18:00 с пользой для здоровья. Стоимость — <strong className="text-gradient-warm">3 000 ₽</strong>.
               Включено: грязелечение, обед, минеральная ванна, размещение в уютном номере.
             </p>
           </div>
