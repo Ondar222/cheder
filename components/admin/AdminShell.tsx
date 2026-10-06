@@ -65,8 +65,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
           <Link href="/admin" className="flex items-center gap-2.5 shrink-0 group">
-            <span className="w-8 h-8 rounded-lg bg-accent/12 border border-accent/30 flex items-center justify-center text-accent text-sm">
-              Ч
+            <span className="relative flex h-10 w-10 items-center justify-center">
+              <span className="absolute inset-0 rounded-xl bg-accent/10 border border-line group-hover:bg-accent/20 transition-colors" />
+              <span className="absolute inset-0 rounded-xl blur-md bg-accent/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <img src="/images/logos/logo.png" alt="Здравница Чедер" className="relative h-7 w-auto" />
             </span>
             <span className="hidden sm:block leading-tight">
               <span className="block font-display text-[15px] font-semibold text-ink group-hover:text-accent transition-colors">

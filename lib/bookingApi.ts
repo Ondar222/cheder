@@ -13,7 +13,9 @@
  * сериализатор, и полагаться на одно нельзя.
  */
 
+import dayjs, { type Dayjs } from 'dayjs';
 import { apiRequest } from '@/lib/api';
+import { fromUnix } from '@/lib/datetime';
 
 export type BookingGuest = {
   id?: string | number;
@@ -58,6 +60,16 @@ export type BookingGrid = {
 
 /** Период решётки в unix-секундах */
 export type GridPeriod = { checkIn: number; checkOut: number };
+
+/**
+ * Насколько расширять запрос решётки назад от нужного начала.
+ *
+ * Сервер отбирает брони по дате заезда: окно «сегодня — +14 дней» не вернёт
+ * гостя, который заехал неделю назад и всё ещё живёт. Без запаса админка
+ * потеряла бы уже идущие заезды, а форма создания брони предложила бы занятый
+ * номер. Месяц покрывает длинные путёвки (у санатория курс до 21 дня).
+ */
+export const GRID_LOOKBACK_DAYS = 31;
 
 type Loose = Record<string, unknown>;
 
@@ -206,6 +218,29 @@ export async function createBooking(dto: CreateBookingDto): Promise<number | und
 
   // Ответ бывал и { id }, и вложенным { data: { id } } — читаем оба варианта
   return data?.id ?? data?.data?.id;
+}
+
+/**
+ * Бронь занимает комнату в окне [windowStart; windowEnd) хотя бы одну ночь.
+ *
+ * Сверка по пересечению, а не по дате заезда: гость, заехавший вчера и живущий
+ * ещё неделю, для окна «сегодня — +14 дней» уже забронирован, хотя его заезд в
+ * окно не попадает.
+ */
+export function stayOverlapsWindow(stay: GridBooking, windowStart: number, windowEnd: number): boolean {
+  return stay.checkIn < windowEnd && stay.checkOut > windowStart;
+}
+
+/** Живёт ли гость в номере в указанный момент (заезд сегодня — уже живёт) */
+export function isGuestInHouse(stay: GridBooking, at: Dayjs = dayjs()): boolean {
+  const start = fromUnix(stay.checkIn);
+  const end = fromUnix(stay.checkOut);
+  return !at.isBefore(start, 'day') && at.isBefore(end, 'day');
+}
+
+/** Отменённую бронь не считаем занятостью и не подсвечиваем как заезд */
+export function isCancelledStay(stay: GridBooking): boolean {
+  return /CANCEL/i.test(stay.status);
 }
 
 /** Подпись статуса из решётки — те же варианты, что разбирает BookingGrid */

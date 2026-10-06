@@ -17,7 +17,7 @@ import {
 import { MinusCircleOutlined, PlusOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import { describeApiError } from '@/lib/api';
-import { createBooking, fetchBookingGrid, type GridBooking, type GridRoom } from '@/lib/bookingApi';
+import { createBooking, fetchBookingGrid, GRID_LOOKBACK_DAYS, type GridBooking, type GridRoom } from '@/lib/bookingApi';
 import { formatPrice } from '@/lib/booking';
 import { formatDate, nightsBetween, toUnix } from '@/lib/datetime';
 import { readLeads, updateLead } from '@/lib/leads';
@@ -105,10 +105,12 @@ export default function CreateBookingForm() {
   useEffect(() => {
     if (!period || !periodKey) return;
 
-    // Решётка берётся с запасом по краям: видно брони, которые кончаются в день
-    // заезда и начинаются в день выезда. Состояния меняем только в колбэках.
+    // Решётка берётся с запасом: сзади — чтобы увидеть заезды, которые уже идут
+    // (сервер отбирает брони по дате заезда, см. GRID_LOOKBACK_DAYS), спереди —
+    // чтобы видеть брони, кончающиеся в день заезда. Иначе форма предложила бы
+    // занятый номер. Состояния меняем только в колбэках.
     fetchBookingGrid({
-      checkIn: period.checkIn - 7 * 86_400,
+      checkIn: period.checkIn - GRID_LOOKBACK_DAYS * 86_400,
       checkOut: period.checkOut + 7 * 86_400,
     })
       .then((grid) => {
