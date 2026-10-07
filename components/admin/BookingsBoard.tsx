@@ -35,9 +35,19 @@ const PERIOD_PRESETS: { label: string; value: [Dayjs, Dayjs] }[] = [
   { label: 'Неделя', value: [dayjs().startOf('day'), dayjs().add(6, 'day').startOf('day')] },
   { label: 'Две недели', value: [dayjs().startOf('day'), dayjs().add(13, 'day').startOf('day')] },
   { label: 'Месяц', value: [dayjs().startOf('day'), dayjs().add(29, 'day').startOf('day')] },
+  { label: 'Квартал', value: [dayjs().startOf('day'), dayjs().add(89, 'day').startOf('day')] },
   { label: 'Этот месяц', value: [dayjs().startOf('month'), dayjs().endOf('month').startOf('day')] },
   { label: 'Прошедший месяц', value: [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month').startOf('day')] },
 ];
+
+/**
+ * Окно по умолчанию — квартал вперёд.
+ *
+ * Бронь с другого сайта или из партнёрского кабинета ставится и на дальние
+ * даты: узкое окно «сегодня — +14 дней» показывало бы список пустым, хотя заезд
+ * уже создан, и менеджер решил бы, что бронь не дошла.
+ */
+const DEFAULT_PERIOD_DAYS = 90;
 
 /** Цвет статуса — та же логика, что подсветка в шахматке партнёрского кабинета */
 function statusColor(status: string): string {
@@ -54,7 +64,10 @@ function statusColor(status: string): string {
  * одного запроса хватает и на таблицу, и на счётчики загрузки на сегодня.
  */
 export default function BookingsBoard() {
-  const [period, setPeriod] = useState<[Dayjs, Dayjs]>(() => [dayjs().startOf('day'), dayjs().add(14, 'day').startOf('day')]);
+  const [period, setPeriod] = useState<[Dayjs, Dayjs]>(() => [
+    dayjs().startOf('day'),
+    dayjs().add(DEFAULT_PERIOD_DAYS - 1, 'day').startOf('day'),
+  ]);
   const [rooms, setRooms] = useState<GridRoom[]>([]);
   const [bookings, setBookings] = useState<GridBooking[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -135,7 +148,13 @@ export default function BookingsBoard() {
         if (!needle) return true;
         const room = roomById.get(booking.roomId);
         const haystack = [
-          ...booking.guests.flatMap((guest) => [guest.name, guest.surname, guest.phone, guest.email]),
+          ...booking.guests.flatMap((guest) => [
+            guest.name,
+            guest.surname,
+            guest.patronymic,
+            guest.phone,
+            guest.additionalInfo,
+          ]),
           room?.number,
           room?.name,
           String(booking.id),
@@ -177,6 +196,11 @@ export default function BookingsBoard() {
           <div className="text-[12px] text-muted">
             {booking.guests.map((guest) => guest.phone).filter(Boolean).join(', ') || 'телефон не указан'}
           </div>
+          {booking.guests.some((guest) => guest.additionalInfo) && (
+            <div className="text-[11.5px] text-muted/70 mt-0.5 max-w-[280px]">
+              {booking.guests.map((guest) => guest.additionalInfo).filter(Boolean).join(' · ')}
+            </div>
+          )}
         </div>
       ),
     },
@@ -289,13 +313,17 @@ export default function BookingsBoard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
         <div className="glass rounded-2xl p-4">
-          <Statistic title="Броней в периоде" value={inPeriod.length} valueStyle={{ color: 'var(--ink)', fontSize: 26 }} />
+          <Statistic
+            title="Броней в периоде"
+            value={inPeriod.length}
+            styles={{ content: { color: 'var(--ink)', fontSize: 26 } }}
+          />
         </div>
         <div className="glass rounded-2xl p-4">
           <Statistic
             title="Ждут оплаты"
             value={unpaid}
-            valueStyle={{ color: 'var(--warm)', fontSize: 26 }}
+            styles={{ content: { color: 'var(--warm)', fontSize: 26 } }}
             prefix={unpaid > 0 ? <ExclamationCircleOutlined style={{ fontSize: 16 }} /> : undefined}
           />
         </div>
@@ -303,7 +331,7 @@ export default function BookingsBoard() {
           <Statistic
             title="Сейчас живут"
             value={inHouse.length}
-            valueStyle={{ color: 'var(--accent-2)', fontSize: 26 }}
+            styles={{ content: { color: 'var(--accent-2)', fontSize: 26 } }}
             prefix={inHouse.length > 0 ? <HomeOutlined style={{ fontSize: 16 }} /> : undefined}
           />
         </div>
@@ -311,11 +339,15 @@ export default function BookingsBoard() {
           <Statistic
             title="Сегодня занято"
             value={occupancyToday ? `${occupancyToday.occupied} / ${occupancyToday.total}` : '—'}
-            valueStyle={{ color: 'var(--accent)', fontSize: 26 }}
+            styles={{ content: { color: 'var(--accent)', fontSize: 26 } }}
           />
         </div>
         <div className="glass rounded-2xl p-4">
-          <Statistic title="Комнат в пуле" value={rooms.length} valueStyle={{ color: 'var(--ink)', fontSize: 26 }} />
+          <Statistic
+            title="Комнат в пуле"
+            value={rooms.length}
+            styles={{ content: { color: 'var(--ink)', fontSize: 26 } }}
+          />
         </div>
       </div>
 

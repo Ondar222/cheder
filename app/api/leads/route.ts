@@ -6,12 +6,17 @@
  * приёмника не было, заявка жила в localStorage браузера гостя и до кабинета не
  * доходила.
  *
+ * Тут же заявка превращается в бронь Yurta (lib/server/booking-from-lead.ts):
+ * сервер под сервисным аккаунтом отеля подбирает свободный номер и создаёт
+ * заезд, поэтому бронь с сайта сразу видна в шахматке. Ошибка брони не отменяет
+ * заявку — она сохраняется с bookingError, чтобы менеджер дозвонился вручную.
+ *
  * Права разведены по-честному:
  *   POST   — открыт: форму заполняет гость, аккаунта у него нет. Взамен жёсткая
  *            проверка и пересчёт суммы на сервере плюс ограничение частоты.
  *   GET/PATCH/DELETE — только по сессии кабинета (httpOnly-cookie из
- *            /api/admin/session): в заявке ФИО и телефон гостя, отдавать их
- *            любому нельзя.
+ *            /api/admin/session): в заявке ФИО, телефон и паспорт гостя, отдавать
+ *            их любому нельзя.
  */
 
 import { NextResponse } from 'next/server';
@@ -23,6 +28,7 @@ import {
   type StoredLead,
 } from '@/lib/server/leads-store';
 import { parseLeadPayload } from '@/lib/server/lead-payload';
+import { createBookingFromLead } from '@/lib/server/booking-from-lead';
 import { sessionFromRequest } from '@/lib/server/admin-session';
 
 /**
@@ -86,6 +92,16 @@ export async function POST(request: Request) {
   // Идентификатор присваиваем на сервере: гость не должен выбирать его сам
   parsed.lead.leadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+  // Бронь ставим до сохранения: её id и причина отказа — часть самой заявки.
+  // Сбой API отеля не должен ронять приём заявок — гость уже видел подтверждение.
+  const attempt = await createBookingFromLead(parsed.lead);
+  if (attempt.ok) {
+    parsed.lead.status = 'booked';
+    if (attempt.bookingId !== undefined) parsed.lead.bookingId = attempt.bookingId;
+  } else {
+    parsed.lead.bookingError = attempt.message;
+  }
+
   try {
     const saved = await appendLead(parsed.lead);
     return NextResponse.json({ ok: true, lead: saved }, { status: 201 });
@@ -138,9 +154,13 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: false, message: 'Номер брони должен быть числом' }, { status: 400 });
   }
 
-  const patch: Partial<Pick<StoredLead, 'status' | 'bookingId'>> = {};
+  const patch: Partial<Pick<StoredLead, 'status' | 'bookingId' | 'bookingError'>> = {};
   if (status !== undefined) patch.status = status as LeadStatus;
-  if (bookingId !== undefined) patch.bookingId = Number(bookingId);
+  if (bookingId !== undefined) {
+    patch.bookingId = Number(bookingId);
+    // Менеджер привязал бронь вручную — прежняя причина отказа больше не актуальна
+    patch.bookingError = undefined;
+  }
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ ok: false, message: 'Нечего менять в заявке' }, { status: 400 });
   }

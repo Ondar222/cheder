@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# заявки гостей (ФИО, телефон, паспорт) и секрет сессии кабинета
+/data
+
 # vercel
 .vercel
 

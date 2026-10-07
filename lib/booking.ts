@@ -2,12 +2,14 @@
  * Данные и логика онлайн-бронирования.
  *
  * Держим отдельно от компонента: тарифы и категории нужны и карточкам в секции
- * «Цены», и модалке, и будущему бэкенду. Цены суток берутся из тех же периодов,
- * что показывает секция «Цены» — чтобы в заявке не расходилась сумма с той,
- * по которой гость кликнул «Забронировать».
+ * «Цены», и модалке, и серверу — он по этой же заявке пересчитывает сумму и
+ * подбирает номер в Yurta. Цены суток берутся из тех же периодов, что
+ * показывает секция «Цены», — чтобы в заявке не расходилась сумма с той, по
+ * которой гость кликнул «Забронировать».
  */
 
 import { pushLead } from '@/lib/leads';
+import { isRoomBusy, type GridBooking, type GridRoom } from '@/lib/bookingGrid';
 
 /** Категория номера. Цена не привязана: на сайте тариф «всё включено» единый. */
 export type RoomType = {
@@ -51,6 +53,9 @@ export const EXTRA_GUEST_PRICE = 1000;
 export const MAX_EXTRA_GUESTS = 2;
 export const MAX_NIGHTS = 30;
 
+/** Больше гостей в одну заявку сайт не принимает: семейный номер — предел */
+export const MAX_GUESTS = MAX_EXTRA_GUESTS + 1;
+
 export function findRoomType(id: string): RoomType {
   return ROOM_TYPES.find((room) => room.id === id) ?? ROOM_TYPES[0];
 }
@@ -78,6 +83,15 @@ export function pluralNights(value: number): string {
   return 'дней';
 }
 
+/** Склонение: 1 гость, 2 гостя, 5 гостей */
+export function pluralGuests(value: number): string {
+  const mod10 = value % 10;
+  const mod100 = value % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'гость';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'гостя';
+  return 'гостей';
+}
+
 /** Стоимость суток с учётом подселённых гостей */
 export function pricePerNight(rate: Rate, extraGuests: number): number {
   const guests = extraGuests > 0 ? extraGuests : 0;
@@ -94,23 +108,50 @@ export function calcTotal(
   return pricePerNight(rate, extraGuests) * safeNights;
 }
 
+/**
+ * Данные одного гостя. Первый гость — тот, кто заполняет форму: у него телефон и
+ * паспорт обязательны, у спутников достаточно ФИО (паспорт можно дополнить).
+ */
+export type BookingGuestInfo = {
+  surname: string;
+  name: string;
+  patronymic: string;
+  phone?: string;
+  birthDate?: string;
+  /** Серия и номер одной строкой: «65 12 №123456» */
+  passport?: string;
+  passportIssuedBy?: string;
+  /** Дата выдачи паспорта, YYYY-MM-DD */
+  passportIssuedDate?: string;
+  /** Адрес регистрации */
+  address?: string;
+};
+
+/** Значения формы бронирования: ФИО и паспорт на каждого гостя, даты заезда */
 export type BookingFormValues = {
   rateId: string;
   roomTypeId: string;
-  name: string;
-  surname: string;
-  phone: string;
-  hasExtraGuest: 'yes' | 'no';
-  extraGuests?: number;
   checkIn: string;
+  checkOut: string;
   nights: number;
+  guests: BookingGuestInfo[];
   comment?: string;
   consent: boolean;
 };
 
-export type BookingPayload = BookingFormValues & {
+export type BookingPayload = {
+  rateId: string;
   ratePeriod: string;
+  roomTypeId: string;
   roomTypeLabel: string;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  guests: BookingGuestInfo[];
+  /** Телефон основного гостя — по нему звонит менеджер */
+  phone: string;
+  comment?: string;
+  consent: boolean;
   pricePerNight: number;
   extraGuestsPrice: number;
   total: number;
@@ -161,32 +202,86 @@ export function isPhoneComplete(value: string): boolean {
   return normalizePhoneDigits(value).length === 10;
 }
 
+/** Номер ночей между датами заезда и выезда (ISO-строки) */
+export function nightsBetweenDates(checkIn: string, checkOut: string): number {
+  const start = Date.parse(checkIn);
+  const end = Date.parse(checkOut);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 1;
+  return Math.round((end - start) / 86_400_000);
+}
+
+/**
+ * Подсказки для сопоставления категории сайта с названием типа номера в Yurta.
+ *
+ * Точного маппинга категорий сайта на room_type_id отеля нет, поэтому сначала
+ * ищем номер, чьё название похоже на выбранную категорию, а среди прочих берём
+ * самый дешёвый подходящей вместимости. Менеджер всегда может переставить гостя
+ * в партнёрском кабинете — здесь важно не оставить заявку без брони.
+ */
+const CATEGORY_HINTS: Record<string, RegExp> = {
+  single: /одноместн|single|стандарт/i,
+  double: /двухместн|double|стандарт/i,
+  twin: /двухместн|twin|две кроват|стандарт/i,
+  family: /семейн|family|люкс|апартамент/i,
+  lux: /люкс|lux|апартамент|suite/i,
+};
+
+/**
+ * Свободная комната под заявку с сайта: не занята на эти даты и вмещает всех
+ * гостей. Категория из формы — предпочтение, а не жёсткое требование: если
+ * подходящих по названию нет, берём любую свободную нужной вместимости.
+ */
+export function pickRoomForLead(params: {
+  roomTypeId: string;
+  guests: number;
+  rooms: GridRoom[];
+  bookings: GridBooking[];
+  checkIn: number;
+  checkOut: number;
+}): GridRoom | undefined {
+  const { roomTypeId, guests, rooms, bookings, checkIn, checkOut } = params;
+  const needed = Math.max(1, guests);
+  const hint = CATEGORY_HINTS[roomTypeId];
+
+  const free = rooms.filter(
+    (room) =>
+      !isRoomBusy(room.id, bookings, checkIn, checkOut) &&
+      (room.capacity <= 0 || room.capacity >= needed),
+  );
+  if (free.length === 0) return undefined;
+
+  const score = (room: GridRoom): number => {
+    const name = `${room.roomTypeName ?? ''} ${room.name ?? ''}`;
+    const matchesCategory = hint && hint.test(name) ? 0 : 1;
+    // Сначала совпадение по категории, затем вместимость «впритык», затем цена
+    const capacityGap = room.capacity > 0 ? room.capacity - needed : 99;
+    return matchesCategory * 1000 + capacityGap * 100 + room.price;
+  };
+
+  return [...free].sort((a, b) => score(a) - score(b))[0];
+}
+
 /**
  * Отправка заявки.
  *
  * Заявка уходит на сервер сайта (POST /api/leads) — только там её увидит
- * менеджер в кабинете /admin, независимо от того, с какого устройства бронирует
- * гость. Если приёмник недоступен, lib/leads.ts кладёт заявку в localStorage
- * этого браузера, и форма всё равно подтверждается. Дополнительно, если задан
- * NEXT_PUBLIC_BOOKING_WEBHOOK (Telegram-бот, CRM), заявка параллельно уходит
- * туда. Гость в любом случае видит подтверждение — форма не должна «молча»
- * терять людей.
+ * менеджер в кабинете /admin. Сервер же создаёт бронь в Yurta: гостю для этого
+ * не нужен доступ к API отеля, а менеджер видит заезд сразу в шахматке. Если
+ * приёмник недоступен, lib/leads.ts кладёт заявку в localStorage этого браузера,
+ * и форма всё равно подтверждается — заявку не должно терять молча.
  */
 export async function submitBooking(payload: BookingPayload): Promise<void> {
   const { onServer } = await pushLead(payload);
 
-  const endpoint = process.env.NEXT_PUBLIC_BOOKING_WEBHOOK;
-
-  if (!endpoint) {
-    console.info(
-      onServer
-        ? '[booking] заявка принята сервером, NEXT_PUBLIC_BOOKING_WEBHOOK не задан:'
-        : '[booking] сервер недоступен, заявка в локальном резерве, NEXT_PUBLIC_BOOKING_WEBHOOK не задан:',
-      payload,
-    );
+  if (!onServer) {
+    console.warn('[booking] сервер недоступен, заявка сохранена локально:', payload);
     return;
   }
 
+  const endpoint = process.env.NEXT_PUBLIC_BOOKING_WEBHOOK;
+  if (!endpoint) return;
+
+  // Необязательный дубль во внешний приёмник (Telegram-бот, CRM)
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

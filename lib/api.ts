@@ -1,8 +1,8 @@
 /**
  * HTTP-клиент к API платформы Yurta (та же, что у partners-next).
  *
- * Своего бэкенда у сайта нет, поэтому админка говорит с API напрямую из
- * браузера: сервер отдаёт Access-Control-Allow-Origin: * и разрешает заголовок
+ * Своего бэкенда у админки нет, поэтому она говорит с API напрямую из браузера:
+ * сервер отдаёт Access-Control-Allow-Origin: * и разрешает заголовок
  * authorization в preflight, так что axios и serverless-прослойка не нужны.
  *
  * Ответ всегда в конверте { status, message, data } (см. ApiResponse в
@@ -86,6 +86,10 @@ async function rawRequest<T>(
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
+      // Решётка броней отдаётся с ETag, но без Cache-Control: браузер вправе
+      // подставить свой кэш и показать старую загрузку. Менеджеру нужен
+      // ответ сети — бронь, созданная секунду назад, обязана быть в списке.
+      cache: 'no-store',
     });
   } catch {
     // Браузер не смог достучаться (нет сети / DNS / CORS для чужого хоста)
@@ -134,9 +138,13 @@ export function refreshSession(): Promise<boolean> {
       });
       saveSession(data);
       return Boolean(getAccessToken());
-    } catch {
-      // Обновиться не удалось — сессия невалидна, дальше только повторный вход
-      clearSession();
+    } catch (error) {
+      // Токены стираем только при явном отказе авторизации. Сеть или 5xx на
+      // /auth/refresh не должны разлогинивать менеджера посреди смены: иначе
+      // одна пропавшая связь уничтожает живую сессию и выкидывает из кабинета.
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        clearSession();
+      }
       return false;
     } finally {
       refreshInFlight = null;
@@ -169,12 +177,4 @@ async function attemptWithRefresh<T>(
     }
     throw error;
   }
-}
-
-/** Публичный запрос без токена: вход, код из письма */
-export function publicRequest<T>(
-  path: string,
-  options: { method?: string; body?: unknown; query?: Query } = {},
-): Promise<ApiEnvelope<T>> {
-  return rawRequest<T>(path, { ...options, token: null });
 }

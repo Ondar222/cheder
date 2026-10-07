@@ -1,137 +1,22 @@
 /**
- * Контракт бронирований Yurta, нужный админке санатория.
+ * Клиентский доступ админки к бронированиям Yurta.
  *
- * Снято с partners-next (src/entities/event/api/useEventApi.ts,
- * src/entities/booking/api/useBookingApi.ts), чтобы админка сайта и кабинет
- * партнёра говорили с API одинаково:
+ * Контракт (типы, разбор ответа решётки, подписи статусов) живёт в
+ * lib/bookingGrid.ts — тот же модуль читает и сервер сайта, создавая брони из
+ * заявок гостей. Здесь остаётся только то, что нужно браузеру менеджера:
+ * запросы под Bearer-токеном сессии и создание брони из формы /admin/new.
  *
  *   GET  /v4/booking/grid?check_in=&check_out=  — комнаты и брони за период
  *   POST /v2/booking/room/prepaid               — создание брони (предоплата)
  *
- * Даты API принимает и отдаёт в unix-секундах, поля приходят в snake_case —
- * нормализуем в camelCase на границе, читая оба написания: бэкенд менял
- * сериализатор, и полагаться на одно нельзя.
+ * Даты API принимает и отдаёт в unix-секундах.
  */
 
-import dayjs, { type Dayjs } from 'dayjs';
 import { apiRequest } from '@/lib/api';
-import { fromUnix } from '@/lib/datetime';
+import { normalizeGrid, type BookingGrid, type GridPeriod } from '@/lib/bookingGrid';
+import type { BookingGuestInfo } from '@/lib/booking';
 
-export type BookingGuest = {
-  id?: string | number;
-  surname: string;
-  name: string;
-  patronymic?: string;
-  phone?: string;
-  email?: string;
-  /** Дата рождения и адрес прописки приходят одной строкой от бэкенда */
-  additionalInfo?: string;
-};
-
-export type GridRoom = {
-  id: number;
-  name: string;
-  number: string;
-  price: number;
-  capacity: number;
-  buildingName?: string;
-  roomTypeId?: number;
-  roomTypeName?: string;
-};
-
-export type GridBooking = {
-  id: number;
-  roomId: number;
-  /** unix-секунды */
-  checkIn: number;
-  checkOut: number;
-  dateCreated?: number;
-  status: string;
-  paymentStatus?: string;
-  totalAmount: number;
-  comment: string;
-  guests: BookingGuest[];
-};
-
-export type BookingGrid = {
-  rooms: GridRoom[];
-  bookings: GridBooking[];
-};
-
-/** Период решётки в unix-секундах */
-export type GridPeriod = { checkIn: number; checkOut: number };
-
-/**
- * Насколько расширять запрос решётки назад от нужного начала.
- *
- * Сервер отбирает брони по дате заезда: окно «сегодня — +14 дней» не вернёт
- * гостя, который заехал неделю назад и всё ещё живёт. Без запаса админка
- * потеряла бы уже идущие заезды, а форма создания брони предложила бы занятый
- * номер. Месяц покрывает длинные путёвки (у санатория курс до 21 дня).
- */
-export const GRID_LOOKBACK_DAYS = 31;
-
-type Loose = Record<string, unknown>;
-
-const pick = <T>(raw: Loose, ...keys: string[]): T | undefined => {
-  for (const key of keys) {
-    const value = raw[key];
-    if (value !== undefined && value !== null) return value as T;
-  }
-  return undefined;
-};
-
-const toNumber = (value: unknown): number => {
-  const parsed = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-function normalizeGuest(raw: unknown): BookingGuest {
-  const g = (raw ?? {}) as Loose;
-  return {
-    id: pick<string | number>(g, 'id'),
-    surname: String(pick<string>(g, 'surname') ?? ''),
-    name: String(pick<string>(g, 'name') ?? ''),
-    patronymic: pick<string>(g, 'patronymic') ?? undefined,
-    phone: pick<string>(g, 'phone') ?? undefined,
-    email: pick<string>(g, 'email') ?? undefined,
-    additionalInfo: pick<string>(g, 'additionalInfo', 'additional_info') ?? undefined,
-  };
-}
-
-function normalizeBooking(raw: unknown): GridBooking {
-  const b = (raw ?? {}) as Loose;
-  return {
-    id: toNumber(pick(b, 'id')),
-    roomId: toNumber(pick(b, 'room_id', 'roomId')),
-    checkIn: toNumber(pick(b, 'check_in', 'checkIn')),
-    checkOut: toNumber(pick(b, 'check_out', 'checkOut')),
-    dateCreated: pick<number>(b, 'date_created', 'dateCreated') !== undefined
-      ? toNumber(pick(b, 'date_created', 'dateCreated'))
-      : undefined,
-    status: String(pick<string>(b, 'status') ?? 'NEW'),
-    paymentStatus: pick<string>(b, 'payment_status', 'paymentStatus') ?? undefined,
-    totalAmount: toNumber(pick(b, 'total_amount', 'totalAmount')),
-    comment: String(pick<string>(b, 'comment') ?? ''),
-    guests: (pick<unknown[]>(b, 'guests') ?? []).map(normalizeGuest),
-  };
-}
-
-function normalizeRoom(raw: unknown): GridRoom {
-  const r = (raw ?? {}) as Loose;
-  return {
-    id: toNumber(pick(r, 'id')),
-    name: String(pick<string>(r, 'name') ?? ''),
-    number: String(pick<string>(r, 'number') ?? ''),
-    price: toNumber(pick(r, 'price')),
-    capacity: toNumber(pick(r, 'capacity')),
-    buildingName: pick<string>(r, 'building_name', 'buildingName') ?? undefined,
-    roomTypeId: pick<number>(r, 'room_type_id', 'roomTypeId') !== undefined
-      ? toNumber(pick(r, 'room_type_id', 'roomTypeId'))
-      : undefined,
-    roomTypeName: pick<string>(r, 'room_type_name', 'roomTypeName') ?? undefined,
-  };
-}
+export * from '@/lib/bookingGrid';
 
 type RawGridResponse = {
   rooms?: unknown[];
@@ -148,22 +33,11 @@ export async function fetchBookingGrid(period: GridPeriod): Promise<BookingGrid>
     query: { check_in: period.checkIn, check_out: period.checkOut },
   });
 
-  return {
-    rooms: (data?.rooms ?? []).map(normalizeRoom),
-    bookings: (data?.bookings ?? []).map(normalizeBooking),
-  };
+  return normalizeGrid(data);
 }
 
-/** Гость для создания: паспортные данные бэкенд ждёт одной строкой */
-export type CreateBookingGuest = {
-  surname: string;
-  name: string;
-  patronymic?: string;
-  phone?: string;
-  email?: string;
-  birthDate?: string;
-  address?: string;
-};
+/** Гость для создания брони: паспортные данные бэкенд ждёт одной строкой */
+export type CreateBookingGuest = BookingGuestInfo;
 
 export type CreateBookingDto = {
   /** unix-секунды */
@@ -176,22 +50,53 @@ export type CreateBookingDto = {
   paymentReference?: string;
 };
 
-function guestPayload(guest: CreateBookingGuest): Loose {
+/** «Паспорт: 65 12 №123456, выдан ...; Адрес: ...» — одним полем additionalInfo */
+export function passportInfo(guest: CreateBookingGuest): string {
   const passport = [
+    guest.passport ? `Паспорт: ${guest.passport}` : null,
+    guest.passportIssuedBy ? `выдан: ${guest.passportIssuedBy}` : null,
+    guest.passportIssuedDate ? `дата выдачи: ${guest.passportIssuedDate}` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  return [
     guest.birthDate ? `Дата рождения: ${guest.birthDate}` : null,
+    passport || null,
     guest.address ? `Адрес прописки: ${guest.address}` : null,
   ]
     .filter(Boolean)
     .join('; ');
+}
+
+export function guestPayload(guest: CreateBookingGuest): Record<string, unknown> {
+  const info = passportInfo(guest);
 
   return {
     surname: guest.surname ?? '',
     name: guest.name ?? '',
     patronymic: guest.patronymic ?? '',
     phone: guest.phone ?? '',
-    email: guest.email ?? '',
-    ...(passport && { additionalInfo: passport }),
+    ...(info && { additionalInfo: info }),
   };
+}
+
+/** Тело создания брони — один контракт и для админки, и для сервера сайта */
+export function bookingRequestBody(dto: CreateBookingDto): Record<string, unknown> {
+  return {
+    check_in: dto.checkIn,
+    check_out: dto.checkOut,
+    rooms: dto.roomIds.map((id) => ({ id })),
+    capacity: dto.capacity,
+    payment_reference: dto.paymentReference ?? '',
+    comment: dto.comment ?? '',
+    guests: dto.guests.map(guestPayload),
+  };
+}
+
+/** Id из ответа создания: бэкенд отдавал и { id }, и вложенным { data: { id } } */
+export function createdBookingId(data: { id?: number; data?: { id?: number } } | null | undefined): number | undefined {
+  return data?.id ?? data?.data?.id;
 }
 
 /**
@@ -202,63 +107,8 @@ function guestPayload(guest: CreateBookingGuest): Loose {
 export async function createBooking(dto: CreateBookingDto): Promise<number | undefined> {
   const data = await apiRequest<{ id?: number; data?: { id?: number } }>(
     '/v2/booking/room/prepaid',
-    {
-      method: 'POST',
-      body: {
-        check_in: dto.checkIn,
-        check_out: dto.checkOut,
-        rooms: dto.roomIds.map((id) => ({ id })),
-        capacity: dto.capacity,
-        payment_reference: dto.paymentReference ?? '',
-        comment: dto.comment ?? '',
-        guests: dto.guests.map(guestPayload),
-      },
-    },
+    { method: 'POST', body: bookingRequestBody(dto) },
   );
 
-  // Ответ бывал и { id }, и вложенным { data: { id } } — читаем оба варианта
-  return data?.id ?? data?.data?.id;
-}
-
-/**
- * Бронь занимает комнату в окне [windowStart; windowEnd) хотя бы одну ночь.
- *
- * Сверка по пересечению, а не по дате заезда: гость, заехавший вчера и живущий
- * ещё неделю, для окна «сегодня — +14 дней» уже забронирован, хотя его заезд в
- * окно не попадает.
- */
-export function stayOverlapsWindow(stay: GridBooking, windowStart: number, windowEnd: number): boolean {
-  return stay.checkIn < windowEnd && stay.checkOut > windowStart;
-}
-
-/** Живёт ли гость в номере в указанный момент (заезд сегодня — уже живёт) */
-export function isGuestInHouse(stay: GridBooking, at: Dayjs = dayjs()): boolean {
-  const start = fromUnix(stay.checkIn);
-  const end = fromUnix(stay.checkOut);
-  return !at.isBefore(start, 'day') && at.isBefore(end, 'day');
-}
-
-/** Отменённую бронь не считаем занятостью и не подсвечиваем как заезд */
-export function isCancelledStay(stay: GridBooking): boolean {
-  return /CANCEL/i.test(stay.status);
-}
-
-/** Подпись статуса из решётки — те же варианты, что разбирает BookingGrid */
-export function bookingStatusLabel(status: string): string {
-  if (/CHECKED_IN|CHECKEDIN|OCCUPIED|IN_HOUSE/i.test(status)) return 'Заселён';
-  if (/CHECKED_OUT|CHECKEDOUT|VACATED|DEPARTED|COMPLETED/i.test(status)) return 'Выселен';
-  if (/PAID/i.test(status)) return 'Оплачен';
-  if (/CANCEL/i.test(status)) return 'Отменён';
-  if (/DRAFT/i.test(status)) return 'Черновик';
-  return 'Не оплачен';
-}
-
-/** «Иванова Мария» — как в списке броней */
-export function guestLabel(guest: BookingGuest): string {
-  const parts = [guest.surname, guest.name].filter(Boolean);
-  return parts.length > 0 ? parts.join(' ') : 'Без имени';
-}
-
-export function guestsLabel(bookings: GridBooking): string {
-  return bookings.guests.map(guestLabel).join(', ') || '—';
+  return createdBookingId(data);
 }

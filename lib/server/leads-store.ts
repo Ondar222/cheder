@@ -21,7 +21,10 @@ export type LeadStatus = 'new' | 'in_work' | 'booked' | 'declined';
 export type StoredLead = {
   leadId: string;
   status: LeadStatus;
+  /** Бронь Yurta, созданная по заявке; нет — бронь не удалось поставить */
   bookingId?: number;
+  /** Причина, по которой бронь не создалась: заявка при этом сохранена */
+  bookingError?: string;
   submittedAt: string;
   [key: string]: unknown;
 };

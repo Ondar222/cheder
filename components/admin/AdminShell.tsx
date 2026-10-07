@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Button, Spin, Tag } from 'antd';
+import { Button, Spin } from 'antd';
 import {
   FileTextOutlined,
   LogoutOutlined,
@@ -11,7 +11,6 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 import { useAdminAuth } from '@/lib/auth';
-import { countNewLeads } from '@/lib/leads';
 
 const NAV = [
   { href: '/admin', label: 'Заявки', icon: <FileTextOutlined /> },
@@ -38,10 +37,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     if (!authed && !onLoginPage) router.replace('/admin/login');
     if (authed && onLoginPage) router.replace('/admin');
   }, [ready, authed, onLoginPage, router]);
-
-  // Заявок немного, поэтому счётчик читаем прямо при рендере: так он всегда
-  // актуален при переходах между разделами и не требует зависимостей в useMemo.
-  const newLeads = authed ? countNewLeads() : 0;
 
   // Форма входа не зависит от сессии: отдаём её сразу, не дожидаясь чтения
   // localStorage, иначе гость видел бы спиннер вместо полей логина.
@@ -93,11 +88,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 >
                   <span className="text-[13px]">{item.icon}</span>
                   {item.label}
-                  {item.href === '/admin' && newLeads > 0 && (
-                    <Tag color="gold" className="!m-0 !px-1.5 !text-[10px] leading-[16px]">
-                      {newLeads}
-                    </Tag>
-                  )}
                 </Link>
               );
             })}

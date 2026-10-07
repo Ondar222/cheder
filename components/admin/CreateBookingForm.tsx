@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Alert,
@@ -17,43 +17,35 @@ import {
 import { MinusCircleOutlined, PlusOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import { describeApiError } from '@/lib/api';
-import { createBooking, fetchBookingGrid, GRID_LOOKBACK_DAYS, type GridBooking, type GridRoom } from '@/lib/bookingApi';
-import { formatPrice } from '@/lib/booking';
+import {
+  createBooking,
+  fetchBookingGrid,
+  GRID_LOOKBACK_DAYS,
+  isRoomBusy,
+  type GridBooking,
+  type GridRoom,
+} from '@/lib/bookingApi';
+import { formatPrice, type BookingGuestInfo } from '@/lib/booking';
 import { formatDate, nightsBetween, toUnix } from '@/lib/datetime';
-import { readLeads, updateLead } from '@/lib/leads';
+import { fetchLeads, patchLead, type SiteLead } from '@/lib/leads';
 
 type FormValues = {
   checkIn: Dayjs;
   nights: number;
   roomId: number;
   capacity: number;
-  guests: {
-    surname: string;
-    name: string;
-    patronymic?: string;
-    phone?: string;
-    email?: string;
-  }[];
+  guests: BookingGuestInfo[];
   comment?: string;
 };
-
-/** Комната занята, если её бронь пересекается с [checkIn, checkOut) */
-function isRoomBusy(roomId: number, bookings: GridBooking[], checkIn: number, checkOut: number): boolean {
-  return bookings.some(
-    (booking) =>
-      booking.roomId === roomId &&
-      !/CANCEL/i.test(booking.status) &&
-      booking.checkIn < checkOut &&
-      checkIn < booking.checkOut,
-  );
-}
 
 /**
  * Создание брони в Yurta из заявки или вручную.
  *
  * Свободные комнаты считаем из той же решётки /v4/booking/grid, что и список
  * броней: менеджер не сможет посадить двух гостей в один номер, потому что
- * занятые на выбранные даты комнаты просто не попадут в выбор.
+ * занятые на выбранные даты комнаты просто не попадут в выбор. Бронь из заявки
+ * обычно уже создана сервером при её приёме — здесь менеджер дооформляет
+ * случай, когда свободного номера не нашлось.
  */
 export default function CreateBookingForm() {
   const router = useRouter();
@@ -70,15 +62,13 @@ export default function CreateBookingForm() {
   const [roomsError, setRoomsError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Заявка лежит на сервере: тянем её по leadId из адреса. На серверном рендере
+  // её нет, поэтому форма заполняется уже после ответа приёмника.
+  const [lead, setLead] = useState<SiteLead | null>(null);
+  const prefilled = useRef(false);
+
   const checkIn = Form.useWatch('checkIn', form);
   const nights = Form.useWatch('nights', form);
-
-  // Заявка из /admin: readLeads безопасен на сервере, поэтому её можно прочитать
-  // прямо на рендере — эффект подState только заполняет поля формы.
-  const lead = useMemo(() => {
-    if (!leadId) return null;
-    return readLeads().find((item) => item.leadId === leadId) ?? null;
-  }, [leadId]);
 
   const period = useMemo(() => {
     if (!checkIn) return null;
@@ -90,12 +80,29 @@ export default function CreateBookingForm() {
   const periodKey = period ? `${period.checkIn}:${period.checkOut}` : null;
 
   useEffect(() => {
-    if (!lead) return;
+    if (!leadId) return;
+    let active = true;
+    fetchLeads()
+      .then(({ leads }) => {
+        if (active) setLead(leads.find((item) => item.leadId === leadId) ?? null);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [leadId]);
+
+  // Заявка пришла — заполняем форму один раз, не перетирая правки менеджера
+  useEffect(() => {
+    if (!lead || prefilled.current) return;
+    prefilled.current = true;
     form.setFieldsValue({
       checkIn: dayjs(lead.checkIn),
       nights: lead.nights,
-      capacity: 1 + (lead.hasExtraGuest === 'yes' ? lead.extraGuests ?? 1 : 0),
-      guests: [{ surname: lead.surname, name: lead.name }],
+      capacity: lead.guests?.length || 1,
+      guests: lead.guests?.length
+        ? lead.guests
+        : [{ surname: '', name: '', patronymic: '', phone: '', passport: '' }],
       comment: lead.comment
         ? `Заявка с сайта (${lead.source}): ${lead.comment}`
         : `Заявка с сайта (${lead.source})`,
@@ -149,6 +156,13 @@ export default function CreateBookingForm() {
   }, [rooms, bookings, period]);
 
   const handleFinish = async (values: FormValues) => {
+    // Заявка уже превратилась в бронь автоматически: вторая бронь по ней
+    // посадила бы того же гостя в номер дважды.
+    if (lead?.bookingId) {
+      messageApi.warning(`По заявке уже создана бронь #${lead.bookingId}`, 5);
+      return;
+    }
+
     const checkInUnix = toUnix(values.checkIn.startOf('day'));
     const totalNights = Math.max(1, values.nights ?? 1);
 
@@ -163,12 +177,9 @@ export default function CreateBookingForm() {
         comment: values.comment,
       });
 
-      if (lead && bookingId) updateLead(lead.leadId, { status: 'booked', bookingId });
+      if (lead && bookingId) await patchLead(lead.leadId, { status: 'booked', bookingId });
 
-      messageApi.success(
-        bookingId ? `Бронь #${bookingId} создана` : 'Бронь создана',
-        4,
-      );
+      messageApi.success(bookingId ? `Бронь #${bookingId} создана` : 'Бронь создана', 4);
       router.push(lead ? '/admin' : '/admin/bookings');
     } catch (error) {
       messageApi.error(describeApiError(error), 6);
@@ -181,6 +192,10 @@ export default function CreateBookingForm() {
     ? `${formatDate(period.checkIn)} — ${formatDate(period.checkOut)}, ${nightsBetween(period.checkIn, period.checkOut)} ноч.`
     : 'Выберите дату заезда';
 
+  const leadName = lead?.guests?.[0]
+    ? [lead.guests[0].surname, lead.guests[0].name].filter(Boolean).join(' ')
+    : '';
+
   return (
     <div className="max-w-3xl">
       {contextHolder}
@@ -192,17 +207,24 @@ export default function CreateBookingForm() {
         </h1>
         <p className="text-muted text-[13px]">
           Бронь создаётся со статусом «не оплачен»: предоплату 100% и договор
-          менеджер оформляет в партнёрском кабинете.
+          менеджер оформляет в партнёрском кабинете. Заявки с сайта приходят в
+          бронь автоматически — эта форма для ручного оформления.
         </p>
       </div>
 
       {lead && (
         <Alert
-          type="info"
+          type={lead.bookingId ? 'success' : 'info'}
           showIcon
           icon={<ThunderboltOutlined />}
-          message={`Заявка: ${lead.surname} ${lead.name}, заезд ${formatDate(lead.checkIn)}, ${lead.nights} ноч.`}
-          description={`Сумма по заявке на сайте — ${formatPrice(lead.total)} р. (${lead.roomTypeLabel}). После создания брони заявка отметится как взятая в работу.`}
+          message={`Заявка: ${leadName}, заезд ${formatDate(lead.checkIn)}, ${lead.nights} ноч.`}
+          description={
+            lead.bookingId
+              ? `Бронь #${lead.bookingId} уже создана автоматически. Правки оформляйте в партнёрском кабинете.`
+              : lead.bookingError
+                ? `Автоматически поставить бронь не удалось: ${lead.bookingError}. Выберите номер вручную.`
+                : `Сумма по заявке на сайте — ${formatPrice(lead.total)} р. (${lead.roomTypeLabel}).`
+          }
           className="!mb-6 !rounded-xl"
         />
       )}
@@ -211,8 +233,8 @@ export default function CreateBookingForm() {
         <Alert
           type="warning"
           showIcon
-          message="Заявка не найдена в этом браузере"
-          description="Создайте бронь вручную — форма заполнена с нуля."
+          message="Заявка не найдена"
+          description="Возможно, её удалили или ссылка устарела. Создайте бронь вручную — форма заполнена с нуля."
           className="!mb-6 !rounded-xl"
         />
       )}
@@ -242,7 +264,7 @@ export default function CreateBookingForm() {
             checkIn: dayjs().add(1, 'day').startOf('day'),
             nights: 3,
             capacity: 1,
-            guests: [{ surname: '', name: '' }],
+            guests: [{ surname: '', name: '', patronymic: '', phone: '', passport: '' }],
           }}
         >
           <div className="grid sm:grid-cols-3 gap-4">
@@ -281,11 +303,7 @@ export default function CreateBookingForm() {
             name="roomId"
             label={<span className="text-muted text-xs">Комната</span>}
             rules={[{ required: true, message: 'Выберите комнату' }]}
-            extra={
-              period
-                ? 'Занятые на эти даты комнаты недоступны для выбора'
-                : undefined
-            }
+            extra={period ? 'Занятые на эти даты комнаты недоступны для выбора' : undefined}
           >
             <Select
               size="large"
@@ -309,47 +327,69 @@ export default function CreateBookingForm() {
               <>
                 <div className="text-muted text-xs mb-2">Гости</div>
                 {fields.map((field) => (
-                  <div key={field.key} className="grid sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 mb-1 items-start">
-                    <Form.Item
-                      name={[field.name, 'surname']}
-                      rules={[{ required: true, message: 'Фамилия' }]}
-                    >
-                      <Input size="large" placeholder="Фамилия" className="!rounded-xl" />
-                    </Form.Item>
-                    <Form.Item
-                      name={[field.name, 'name']}
-                      rules={[{ required: true, message: 'Имя' }]}
-                    >
-                      <Input size="large" placeholder="Имя" className="!rounded-xl" />
-                    </Form.Item>
-                    <Form.Item name={[field.name, 'phone']}>
-                      <Input size="large" placeholder="Телефон" className="!rounded-xl" />
-                    </Form.Item>
-                    <Button
-                      size="large"
-                      type="text"
-                      danger
-                      icon={<MinusCircleOutlined />}
-                      disabled={fields.length === 1}
-                      onClick={() => remove(field.name)}
-                      aria-label="Убрать гостя"
-                    />
-                    <Form.Item name={[field.name, 'patronymic']} className="sm:col-span-2">
-                      <Input size="large" placeholder="Отчество" className="!rounded-xl" />
-                    </Form.Item>
-                    <Form.Item name={[field.name, 'email']} className="sm:col-span-2">
-                      <Input size="large" type="email" placeholder="Email" className="!rounded-xl" />
-                    </Form.Item>
-                    <div className="hidden sm:block" />
+                  <div key={field.key} className="hud glass rounded-2xl p-4 mb-3">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <span className="font-mono-hud text-[11px] text-muted">
+                        {field.name === 0 ? 'ОСНОВНОЙ ГОСТЬ' : `ГОСТЬ ${field.name + 1}`}
+                      </span>
+                      <Button
+                        size="small"
+                        type="text"
+                        danger
+                        icon={<MinusCircleOutlined />}
+                        disabled={fields.length === 1}
+                        onClick={() => remove(field.name)}
+                        aria-label="Убрать гостя"
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-3 gap-3">
+                      <Form.Item
+                        name={[field.name, 'surname']}
+                        rules={[{ required: true, message: 'Фамилия' }]}
+                        className="mb-2"
+                      >
+                        <Input size="large" placeholder="Фамилия" className="!rounded-xl" />
+                      </Form.Item>
+                      <Form.Item name={[field.name, 'name']} rules={[{ required: true, message: 'Имя' }]} className="mb-2">
+                        <Input size="large" placeholder="Имя" className="!rounded-xl" />
+                      </Form.Item>
+                      <Form.Item name={[field.name, 'patronymic']} className="mb-2">
+                        <Input size="large" placeholder="Отчество" className="!rounded-xl" />
+                      </Form.Item>
+                      <Form.Item name={[field.name, 'phone']} className="mb-2">
+                        <Input size="large" placeholder="Телефон" className="!rounded-xl" />
+                      </Form.Item>
+                      <Form.Item
+                        name={[field.name, 'passport']}
+                        className="mb-2"
+                        extra={field.name === 0 ? undefined : 'Паспорт можно дозаполнить при заселении'}
+                      >
+                        <Input size="large" placeholder="Паспорт: 65 12 №123456" className="!rounded-xl" />
+                      </Form.Item>
+                      <Form.Item name={[field.name, 'birthDate']} className="mb-2">
+                        <Input size="large" placeholder="Дата рождения" className="!rounded-xl" />
+                      </Form.Item>
+                      <Form.Item name={[field.name, 'passportIssuedBy']} className="mb-2 sm:col-span-2">
+                        <Input size="large" placeholder="Кем выдан паспорт" className="!rounded-xl" />
+                      </Form.Item>
+                      <Form.Item name={[field.name, 'address']} className="mb-2">
+                        <Input size="large" placeholder="Адрес регистрации" className="!rounded-xl" />
+                      </Form.Item>
+                    </div>
                   </div>
                 ))}
 
                 <Space className="mb-5">
-                  <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ surname: '', name: '' })}>
+                  <Button
+                    type="dashed"
+                    icon={<PlusOutlined />}
+                    onClick={() => add({ surname: '', name: '', patronymic: '', phone: '', passport: '' })}
+                  >
                     Добавить гостя
                   </Button>
                   <Typography.Text type="secondary" className="!text-[12px]">
-                    Паспортные данные — в партнёрском кабинете при заселении
+                    Паспортные данные уйдут в бронь отеля
                   </Typography.Text>
                 </Space>
                 <Form.ErrorList errors={errors} />
@@ -367,10 +407,10 @@ export default function CreateBookingForm() {
               htmlType="submit"
               size="large"
               loading={submitting}
-              disabled={rooms.length === 0}
+              disabled={rooms.length === 0 || Boolean(lead?.bookingId)}
               className="!h-12 !px-8 !rounded-full !border-0 !bg-gradient-to-r !from-[#fffdf6] !via-[#f0e9d8] !to-[#ddd0b0] !text-[#241a08] !font-semibold"
             >
-              Создать бронь
+              {lead?.bookingId ? 'Бронь уже создана' : 'Создать бронь'}
             </Button>
             <Button size="large" onClick={() => router.back()} className="!h-12 !rounded-full">
               Отмена

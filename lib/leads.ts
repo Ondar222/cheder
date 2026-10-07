@@ -3,6 +3,8 @@
  *
  * Гость отправляет форму у себя, менеджер смотрит список в кабинете — поэтому
  * основной склад лежит на сервере (app/api/leads/route.ts → data/leads.json).
+ * Там же заявка превращается в бронь Yurta: сервер под сервисным аккаунтом
+ * отеля создаёт заезд, и он сразу виден в шахматке раздела «Брони».
  *
  * localStorage остаётся резервной копией: если приёмник недоступен (статическая
  * выкладка без сервера, сбой сети), заявка всё равно не теряется — она пишется
@@ -24,6 +26,8 @@ export type SiteLead = BookingPayload & {
   status: LeadStatus;
   /** Бронь в Yurta, созданная из этой заявки */
   bookingId?: number;
+  /** Почему бронь не создалась — заявка при этом сохранена */
+  bookingError?: string;
   /** Телефон в E.164 (+7913...) — его даёт сервер, для ссылки tel: он надёжнее */
   phoneE164?: string;
 };
@@ -72,7 +76,10 @@ function cacheLead(lead: SiteLead): void {
   writeLeads([lead, ...readLeads().filter((item) => item.leadId !== lead.leadId)]);
 }
 
-function patchCachedLead(leadId: string, patch: Partial<Pick<SiteLead, 'status' | 'bookingId'>>): void {
+function patchCachedLead(
+  leadId: string,
+  patch: Partial<Pick<SiteLead, 'status' | 'bookingId' | 'bookingError'>>,
+): void {
   writeLeads(readLeads().map((lead) => (lead.leadId === leadId ? { ...lead, ...patch } : lead)));
 }
 
@@ -95,7 +102,10 @@ export function addLead(payload: BookingPayload): SiteLead {
 }
 
 /** Синхронные варианты — работа с локальной копией (кабинет офлайн, старые данные) */
-export function updateLead(leadId: string, patch: Partial<Pick<SiteLead, 'status' | 'bookingId'>>): void {
+export function updateLead(
+  leadId: string,
+  patch: Partial<Pick<SiteLead, 'status' | 'bookingId' | 'bookingError'>>,
+): void {
   patchCachedLead(leadId, patch);
 }
 
@@ -149,7 +159,7 @@ export type PushResult = {
 /**
  * Отправка заявки гостем. Ошибка склада не считается ошибкой формы: заявку
  * кладём локально и возвращаем её же — гость увидит подтверждение, а менеджер
- * достанет её из резерва (webhook/CRM подключается той же переменной).
+ * достанет её из резерва.
  */
 export async function pushLead(payload: BookingPayload): Promise<PushResult> {
   try {
