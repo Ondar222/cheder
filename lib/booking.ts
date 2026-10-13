@@ -69,9 +69,18 @@ export function roomTypeLabel(room: RoomType): string {
   return `${room.title} (${room.beds})`;
 }
 
-/** 3990 → «3 990» — сумма и «р.» в дизайне разнесены */
+/** 3990 → «3 990» — сумма и «р.» в дизайне разнесены (для заявок сайта, суммы уже в рублях) */
 export function formatPrice(value: number): string {
   return new Intl.NumberFormat('ru-RU').format(Math.round(value));
+}
+
+/**
+ * Сумма из API Yurta (копейки, ×100) → «3 990» — для шахматки и доски броней.
+ * API возвращает total_amount в копейках, поэтому делим на 100.
+ */
+export function formatYurtaAmount(value: number): string {
+  const rubles = Math.round(value / 100);
+  return new Intl.NumberFormat('ru-RU').format(rubles);
 }
 
 /** Склонение: 1 день, 3 дня, 10 дней */
