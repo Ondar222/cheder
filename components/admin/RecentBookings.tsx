@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Alert, Button, Spin, Table, Tag } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { ArrowRightOutlined, HomeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, HomeOutlined, ReloadOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { describeApiError } from '@/lib/api';
 import {
@@ -16,6 +16,7 @@ import {
 } from '@/lib/bookingApi';
 import { formatDate, nightsBetween, toUnix } from '@/lib/datetime';
 import { formatPrice } from '@/lib/booking';
+import { fetchLeads, type SiteLead } from '@/lib/leads';
 
 /**
  * Ближайшие брони из Yurta на главной кабинета.
@@ -42,44 +43,90 @@ function statusColor(status: string): string {
   return 'gold';
 }
 
+/** Синтетический id заявки для таблицы: отрицательный, чтобы не путать с id брони */
+function leadSyntheticId(lead: SiteLead): number {
+  let hash = 0;
+  for (const ch of lead.leadId) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
+  return -(Math.abs(hash) || 1);
+}
+
+/** Заявка → GridBooking, чтобы лежать в одной таблице с бронями Yurta */
+function leadAsGridBooking(lead: SiteLead): GridBooking {
+  return {
+    id: lead.bookingId ?? leadSyntheticId(lead),
+    roomId: 0,
+    checkIn: toUnix(lead.checkIn),
+    checkOut: toUnix(lead.checkOut),
+    status: lead.status === 'booked' ? 'NEW' : 'DRAFT',
+    totalAmount: lead.total,
+    comment: lead.comment ?? '',
+    guests: lead.guests?.length
+      ? lead.guests.map((g) => ({
+          name: g.name ?? '',
+          surname: g.surname ?? '',
+          patronymic: g.patronymic ?? '',
+          phone: g.phone ?? '',
+        }))
+      : [{ name: '', surname: '', patronymic: '', phone: lead.phone ?? '' }],
+  };
+}
+
 export default function RecentBookings() {
   const [bookings, setBookings] = useState<GridBooking[]>([]);
+  const [siteLeads, setSiteLeads] = useState<SiteLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let active = true;
-    fetchBookingGrid({
-      checkIn: toUnix(dayjs().subtract(GRID_LOOKBACK_DAYS, 'day')),
-      checkOut: toUnix(dayjs().add(PREVIEW_AHEAD_DAYS, 'day')),
-    })
-      .then((grid) => {
-        if (!active) return;
-        setBookings(grid.bookings);
+
+    Promise.allSettled([
+      fetchBookingGrid({
+        checkIn: toUnix(dayjs().subtract(GRID_LOOKBACK_DAYS, 'day')),
+        checkOut: toUnix(dayjs().add(PREVIEW_AHEAD_DAYS, 'day')),
+      }),
+      fetchLeads().then(({ leads }) => leads),
+    ]).then(([gridResult, leadsResult]) => {
+      if (!active) return;
+      if (gridResult.status === 'fulfilled') {
+        setBookings(gridResult.value.bookings);
         setError(null);
-      })
-      .catch((err: unknown) => {
-        if (!active) return;
-        setError(describeApiError(err));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+      } else {
+        setError(describeApiError(gridResult.reason));
+      }
+      if (leadsResult.status === 'fulfilled') {
+        setSiteLeads(leadsResult.value);
+      }
+      setLoading(false);
+    });
 
     return () => {
       active = false;
     };
   }, [reloadToken]);
 
+  /** id броней из Yurta — чтобы не дублировать заявку, уже ставшую бронью */
+  const gridIds = useMemo(() => new Set(bookings.map((b) => b.id)), [bookings]);
+
+  /** id синтетических заявок — для пометки «сайт» */
+  const siteIds = useMemo(
+    () => new Set(siteLeads.filter((l) => !l.bookingId).map(leadSyntheticId)),
+    [siteLeads],
+  );
+
   /**
-   * Порядок показа: сначала живущие сейчас и ближайшие заезды. Отменённые не
-   * убираем — менеджеру видно и отмены, но в конец списка они не уезжают
-   * молча: статус читается по тегу.
+   * Порядок показа: сначала живущие сейчас и ближайшие заезды. Заявки с сайта
+   * добавляем в общий список — бронь из заявки может быть не видна в решётке
+   * менеджера, но менеджер обязан её видеть.
    */
   const upcoming = useMemo(() => {
     const today = toUnix(dayjs().startOf('day'));
-    return [...bookings]
+    const fromLeads = siteLeads
+      .filter((lead) => !lead.bookingId || !gridIds.has(lead.bookingId))
+      .map(leadAsGridBooking);
+
+    return [...bookings, ...fromLeads]
       .sort((a, b) => {
         const aLive = isGuestInHouse(a) ? 0 : 1;
         const bLive = isGuestInHouse(b) ? 0 : 1;
@@ -88,7 +135,7 @@ export default function RecentBookings() {
       })
       .filter((booking) => booking.checkOut > today)
       .slice(0, PREVIEW_LIMIT);
-  }, [bookings]);
+  }, [bookings, siteLeads, gridIds]);
 
   const columns: TableColumnsType<GridBooking> = [
     {
@@ -99,7 +146,14 @@ export default function RecentBookings() {
           <div className="text-ink text-[13px]">
             {booking.guests.map((g) => [g.surname, g.name].filter(Boolean).join(' ')).join(', ') || '—'}
           </div>
-          <div className="text-muted text-[11.5px] font-mono-hud">#{booking.id > 0 ? booking.id : Math.abs(booking.id)}</div>
+          <div className="text-muted text-[11.5px] font-mono-hud">
+            #{booking.id > 0 ? booking.id : Math.abs(booking.id)}
+            {siteIds.has(booking.id) && (
+              <Tag icon={<ThunderboltOutlined />} color="cyan" className="ml-1 px-1 text-[10px] leading-4">
+                сайт
+              </Tag>
+            )}
+          </div>
         </div>
       ),
     },

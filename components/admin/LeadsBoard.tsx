@@ -21,6 +21,8 @@ import {
   type LeadStatus,
   type SiteLead,
 } from '@/lib/leads';
+import { createBookingFromLead as createBookingFromLeadAPI } from '@/lib/bookingApi';
+import { message } from 'antd';
 
 const STATUS_TAG: Record<LeadStatus, string> = {
   new: 'gold',
@@ -63,7 +65,6 @@ function fullName(lead: SiteLead, index = 0): string {
 export default function LeadsBoard() {
   const [leads, setLeads] = useState<SiteLead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [offline, setOffline] = useState<string | null>(null);
   const [status, setStatus] = useState<LeadStatus | 'all'>('all');
   const [query, setQuery] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
@@ -74,10 +75,9 @@ export default function LeadsBoard() {
   useEffect(() => {
     let active = true;
     fetchLeads()
-      .then(({ leads: list, onServer, message }) => {
+      .then(({ leads: list }) => {
         if (!active) return;
         setLeads(list);
-        setOffline(onServer ? null : message ?? 'Показан локальный резерв браузера');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -121,6 +121,34 @@ export default function LeadsBoard() {
   );
 
   const handleStatus = (lead: SiteLead, next: LeadStatus) => {
+    // При переводе в «В броне» без bookingId — создаём бронь под токеном менеджера
+    if (next === 'booked' && !lead.bookingId) {
+      void (async () => {
+        setLeads((prev) => prev.map((item) => (item.leadId === lead.leadId ? { ...item, status: next } : item)));
+        const result = await createBookingFromLeadAPI({
+          checkIn: lead.checkIn,
+          checkOut: lead.checkOut,
+          guests: lead.guests ?? [],
+          phone: lead.phone,
+          comment: lead.comment,
+        });
+
+        if (result.ok) {
+          message.success(`Бронь #${result.bookingId} создана`);
+          setLeads((prev) =>
+            prev.map((item) =>
+              item.leadId === lead.leadId ? { ...item, status: next, bookingId: result.bookingId } : item,
+            ),
+          );
+          await patchLead(lead.leadId, { status: next, bookingId: result.bookingId });
+        } else {
+          message.error(result.message);
+          reload();
+        }
+      })();
+      return;
+    }
+
     setLeads((prev) => prev.map((item) => (item.leadId === lead.leadId ? { ...item, status: next } : item)));
     void patchLead(lead.leadId, { status: next }).then((ok) => {
       if (!ok) reload();
@@ -290,16 +318,6 @@ export default function LeadsBoard() {
           Обновить
         </Button>
       </div>
-
-      {offline && (
-        <Alert
-          type="warning"
-          showIcon
-          message="Список показан из локального резерва"
-          description={`${offline}. Сервер заявок недоступен — данные могут быть неполными.`}
-          className="!mb-5 !rounded-xl"
-        />
-      )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <Segmented

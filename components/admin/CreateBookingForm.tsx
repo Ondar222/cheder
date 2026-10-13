@@ -186,6 +186,7 @@ export default function CreateBookingForm() {
       if (lead && bookingId) await patchLead(lead.leadId, { status: 'booked', bookingId });
 
       messageApi.success(bookingId ? `Бронь #${bookingId} создана` : 'Бронь создана', 4);
+      setReloadToken((v) => v + 1);
       router.push(lead ? '/admin' : '/admin/bookings');
     } catch (error) {
       console.error('[create-booking] ошибка:', error);

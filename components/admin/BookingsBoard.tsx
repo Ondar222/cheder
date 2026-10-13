@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, DatePicker, Input, Select, Space, Statistic, Table, Tag } from 'antd';
+import { Alert, Button, DatePicker, Input, Popconfirm, Select, Space, Statistic, Table, Tag } from 'antd';
 import type { TableColumnsType } from 'antd';
 import {
   ExclamationCircleOutlined,
@@ -9,12 +9,14 @@ import {
   ReloadOutlined,
   SearchOutlined,
   ThunderboltOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import { describeApiError } from '@/lib/api';
 import {
   GRID_LOOKBACK_DAYS,
   bookingStatusLabel,
+  deleteBooking,
   fetchBookingGrid,
   isCancelledStay,
   isGuestInHouse,
@@ -59,9 +61,10 @@ function leadSyntheticId(lead: SiteLead): number {
 }
 
 /**
- * Заявка с созданной бронью → GridBooking, чтобы показать её в той же таблице.
+ * Заявка → GridBooking, чтобы показать её в той же таблице.
  * roomId = 0 — комнату заявка не хранит, это приёмлемо: комната под заявку
  * подбирается на сервере и видна только в Yurta.
+ * Статус берётся из заявки: если «В броне» → NEW, иначе → DRAFT.
  */
 function leadAsGridBooking(lead: SiteLead): GridBooking {
   return {
@@ -69,7 +72,7 @@ function leadAsGridBooking(lead: SiteLead): GridBooking {
     roomId: 0,
     checkIn: toUnix(lead.checkIn),
     checkOut: toUnix(lead.checkOut),
-    status: 'NEW',
+    status: lead.status === 'booked' ? 'NEW' : 'DRAFT',
     totalAmount: lead.total,
     comment: lead.comment ?? '',
     guests: (lead.guests ?? []).map((g) => ({
@@ -356,6 +359,30 @@ export default function BookingsBoard() {
         <Tag color={statusColor(booking.status)} className="!m-0">
           {bookingStatusLabel(booking.status)}
         </Tag>
+      ),
+    },
+    {
+      title: '',
+      key: 'actions',
+      align: 'right',
+      render: (_, booking) => (
+        <div className="flex items-center justify-end gap-1.5">
+          <Popconfirm
+            title="Удалить бронь?"
+            okText="Удалить"
+            cancelText="Оставить"
+            onConfirm={() => {
+              setBookings((prev) => prev.filter((b) => b.id !== booking.id));
+              console.log('[booking] удаляю', booking.id);
+              deleteBooking(booking.id).catch((err) => {
+                console.error('[booking] удаление не удалось', err);
+                load();
+              });
+            }}
+          >
+            <Button size="small" type="text" danger icon={<DeleteOutlined />} aria-label="Удалить бронь" />
+          </Popconfirm>
+        </div>
       ),
     },
   ];

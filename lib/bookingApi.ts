@@ -13,8 +13,9 @@
  */
 
 import { apiRequest } from '@/lib/api';
-import { normalizeGrid, type BookingGrid, type GridPeriod } from '@/lib/bookingGrid';
+import { normalizeGrid, type BookingGrid, type GridPeriod, type GridBooking } from '@/lib/bookingGrid';
 import type { BookingGuestInfo } from '@/lib/booking';
+import { rememberCreatedBooking, readCreatedBookings } from '@/lib/createdBookings';
 
 export * from '@/lib/bookingGrid';
 
@@ -111,7 +112,17 @@ export async function fetchBookingGrid(period: GridPeriod): Promise<BookingGrid>
   }
 
   const grid = mergeRawGrids(ok);
-  console.log('[bookingApi] окна:', { total: settled.length, ok: ok.length, failed, rooms: grid.rooms.length, bookings: grid.bookings.length });
+  console.log('[bookingApi] окна:', JSON.stringify({ total: settled.length, ok: ok.length, failed, rooms: grid.rooms.length, bookings: grid.bookings.length }));
+
+  // Добавляем локально созданные брони (которые ещё не вернулись из API)
+  const localBookings = readCreatedBookings();
+  const apiIds = new Set(grid.bookings.map((b) => b.id));
+  const stillLocal = localBookings.filter((b) => !apiIds.has(b.id));
+  if (stillLocal.length > 0) {
+    console.log('[bookingApi] добавляем локальные брони:', stillLocal.length);
+    return { rooms: grid.rooms, bookings: [...grid.bookings, ...stillLocal] };
+  }
+
   return grid;
 }
 
@@ -162,12 +173,16 @@ export function passportInfo(guest: CreateBookingGuest): string {
 export function guestPayload(guest: CreateBookingGuest): Record<string, unknown> {
   const info = passportInfo(guest);
 
+  // API требует email, но пустая строка не проходит валидацию.
+  // Если email не введён — используем общий контакт отеля.
+  const EMAIL_FALLBACK = 'booking@cheder.ru';
+
   return {
     surname: guest.surname ?? '',
     name: guest.name ?? '',
     patronymic: guest.patronymic ?? '',
     phone: guest.phone ?? '',
-    email: guest.email ?? '',
+    email: guest.email ? String(guest.email).trim() : EMAIL_FALLBACK,
     ...(guest.birthDate && { birthDate: guest.birthDate }),
     ...(guest.passport && { passport: guest.passport }),
     ...(guest.passportIssuedBy && { passportIssuedBy: guest.passportIssuedBy }),
@@ -198,6 +213,9 @@ export function createdBookingId(data: { id?: number; data?: { id?: number } } |
  * Бронь «под предоплату» — тот же эндпоинт, что и в кабинете партнёра.
  * Санаторий подтверждает заезд после предоплаты 100%, поэтому статус новой
  * брони после создания — NEW (не оплачено), менеджер переводит её в кабинете.
+ *
+ * После создания бронь сохраняется в локальный склад — менеджер видит её
+ * в админке сразу, не дожидаясь, пока API вернёт в решётке.
  */
 export async function createBooking(dto: CreateBookingDto): Promise<number | undefined> {
   const data = await apiRequest<{ id?: number; data?: { id?: number } }>(
@@ -205,5 +223,140 @@ export async function createBooking(dto: CreateBookingDto): Promise<number | und
     { method: 'POST', body: bookingRequestBody(dto) },
   );
 
-  return createdBookingId(data);
+  const id = createdBookingId(data);
+  console.log('[bookingApi] бронь создана:', JSON.stringify({ id, response: data }));
+
+  // Сохраняем в локальный склад — бронь появится в админке сразу
+  if (id) {
+    rememberCreatedBooking({
+      id,
+      roomId: dto.roomIds[0] ?? 0,
+      checkIn: dto.checkIn,
+      checkOut: dto.checkOut,
+      status: 'NEW',
+      totalAmount: 0,
+      comment: dto.comment ?? '',
+      guests: dto.guests.map((g) => ({
+        surname: g.surname ?? '',
+        name: g.name ?? '',
+        patronymic: g.patronymic ?? '',
+        phone: g.phone ?? '',
+      })),
+    });
+  }
+
+  return id;
+}
+
+/**
+ * Подбор категории заявки на категорию номера Yurta.
+ *
+ * Заявка с сайта не хранит roomTypeId — это поле формы бронирования.
+ * Здесь мы ищем тип номера, чьё название похоже на выбранную категорию.
+ */
+const LEAD_ROOM_HINTS: Record<string, RegExp> = {
+  single: /одноместн|single|стандарт/i,
+  double: /двухместн|double|стандарт/i,
+  twin: /двухместн|twin|две кроват|стандарт/i,
+  family: /семейн|family|люкс|апартамент/i,
+  lux: /люкс|lux|апартамент|suite/i,
+};
+
+/**
+ * Создать бронь из заявки с сайта под токеном менеджера.
+ *
+ * Сервер не может создать бронь (пустые YURTA_API_EMAIL/PASSWORD), поэтому
+ * менеджер вручную переводит заявку в «В броне» и нажимает «Создать».
+ *
+ * Алгоритм:
+ * 1. Получаем решётку (комнаты + брони) под токеном менеджера
+ * 2. Подбираем комнату: не занята на даты, нужная вместимость
+ * 3. Создаём бронь через /v2/booking/room/prepaid
+ */
+export async function createBookingFromLead(lead: {
+  checkIn: string | number;
+  checkOut: string | number;
+  guests: { name?: string; surname?: string; patronymic?: string; phone?: string; email?: string }[];
+  phone?: string;
+  comment?: string;
+}): Promise<{ ok: true; bookingId: number } | { ok: false; message: string }> {
+  const { checkIn, checkOut, guests, phone, comment } = lead;
+
+  const checkInUnix =
+    typeof checkIn === 'number' ? checkIn : Math.floor(new Date(checkIn).getTime() / 1000);
+  const checkOutUnix =
+    typeof checkOut === 'number' ? checkOut : Math.floor(new Date(checkOut).getTime() / 1000);
+
+  if (!checkInUnix || !checkOutUnix || checkOutUnix <= checkInUnix) {
+    return { ok: false, message: 'Не удалось определить даты заезда' };
+  }
+
+  // Получаем решётку
+  let grid: { rooms: { id: number; capacity?: number; roomTypeName?: string; name?: string; price?: number }[]; bookings: { id: number; roomId: number; checkIn: number; checkOut: number }[] };
+  try {
+    const gridData = await fetchBookingGrid({
+      checkIn: checkInUnix - 30 * 86_400,
+      checkOut: checkOutUnix + 86_400,
+    });
+    grid = { rooms: gridData.rooms, bookings: gridData.bookings };
+  } catch {
+    return { ok: false, message: 'Не удалось загрузить список номеров' };
+  }
+
+  const guestCount = (guests?.length ?? 1) || 1;
+  const firstGuest = guests?.[0] ?? { name: '', surname: '', patronymic: '', phone: '' };
+
+  // Подбираем комнату: не занята на даты, нужная вместимость
+  const freeRooms = grid.rooms.filter((room) => {
+    const busy = grid.bookings.some(
+      (b) =>
+        b.roomId === room.id &&
+        !(checkOutUnix <= b.checkIn || checkInUnix >= b.checkOut),
+    );
+    return !busy && (room.capacity === undefined || room.capacity >= guestCount);
+  });
+
+  if (freeRooms.length === 0) {
+    return {
+      ok: false,
+      message: `На ${new Date(checkInUnix * 1000).toLocaleDateString('ru-RU')} нет свободного номера под ${guestCount} гост.`,
+    };
+  }
+
+  const room = freeRooms[0];
+
+  // Создаём бронь
+  const bookingId = await createBooking({
+    checkIn: checkInUnix,
+    checkOut: checkOutUnix,
+    roomIds: [room.id],
+    capacity: guestCount,
+    guests: [
+      {
+        surname: firstGuest.surname ?? '',
+        name: firstGuest.name ?? '',
+        patronymic: firstGuest.patronymic ?? '',
+        phone: phone ?? firstGuest.phone ?? '',
+        email: firstGuest.email ?? '',
+      },
+    ],
+    comment: comment ?? `Заявка с сайта: ${phone}`,
+  });
+
+  if (!bookingId) {
+    return { ok: false, message: 'Не удалось создать бронь в API отеля' };
+  }
+
+  return { ok: true, bookingId };
+}
+
+/**
+ * Удаление брони по id.
+ *
+ * API Yurta принимает DELETE /v2/booking/{id} — бронь удаляется из системы
+ * полностью (не отменяется). Статусы брони API менять не позволяет — только
+ * через партнёрский кабинет.
+ */
+export async function deleteBooking(id: number): Promise<void> {
+  await apiRequest<unknown>(`/v2/booking/${id}`, { method: 'DELETE' });
 }
