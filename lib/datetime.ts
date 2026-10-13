@@ -17,7 +17,11 @@ export function toUnix(value: Dayjs | string | Date): number {
 /** unix-секунды → Dayjs; бэкенд отдаёт и миллисекунды — различаем по порядку */
 export function fromUnix(value: number): Dayjs {
   if (!Number.isFinite(value) || value <= 0) return dayjs();
-  return value > 1e11 ? dayjs(value) : dayjs.unix(value);
+  // API Yurta отдаёт unix-секунды. dayjs.unix() ждёт секунды, dayjs() — миллисекунды.
+  // Миллисекунды 2025 года ≈ 1.76e12, секунды 2025 года ≈ 1.76e9.
+  // Порог 1e12 (один триллион): выше — миллисекунды, ниже — секунды.
+  const threshold = 1e12;
+  return value > threshold ? dayjs(value) : dayjs.unix(value);
 }
 
 export function formatDate(value: Dayjs | string | number | Date): string {

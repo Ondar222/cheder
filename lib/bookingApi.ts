@@ -24,16 +24,95 @@ type RawGridResponse = {
 };
 
 /**
+ * Максимальная длина окна решётки, которое принимает API: на более длинный
+ * период /v4/booking/grid отвечает 400 с «Booking grid period must be 62 days
+ * or less». Доски админки запрошены квартал с запасом назад, поэтому длинный
+ * запрос режем на окна и склеиваем ответы.
+ */
+const MAX_GRID_WINDOW_DAYS = 60;
+const DAY_SECONDS = 86_400;
+
+/**
+ * Нарезка периода на окна не длиннее лимита API. Частное округляем вверх и
+ * делим период ровно: иначе из 121 дня вышли бы окна 60+60+1 — лишний запрос
+ * почти впустую.
+ */
+function chunkPeriod(period: GridPeriod): GridPeriod[] {
+  const total = period.checkOut - period.checkIn;
+  const max = MAX_GRID_WINDOW_DAYS * DAY_SECONDS;
+  if (total <= max) return [period];
+
+  const count = Math.ceil(total / max);
+  const size = Math.ceil(total / count / DAY_SECONDS) * DAY_SECONDS;
+
+  const windows: GridPeriod[] = [];
+  for (let start = period.checkIn; start < period.checkOut; start += size) {
+    windows.push({ checkIn: start, checkOut: Math.min(start + size, period.checkOut) });
+  }
+  return windows;
+}
+
+async function fetchGridWindow(period: GridPeriod): Promise<RawGridResponse> {
+  return apiRequest<RawGridResponse>('/v4/booking/grid', {
+    query: { check_in: period.checkIn, check_out: period.checkOut },
+  });
+}
+
+/** Склейка окон: комнаты и брони дедуплицируем по id — границы окон пересекаются */
+function mergeRawGrids(responses: RawGridResponse[]): BookingGrid {
+  const roomsById = new Map<number, unknown>();
+  const bookingsById = new Map<number, unknown>();
+
+  for (const response of responses) {
+    for (const room of response.rooms ?? []) {
+      const id = (room as { id?: number }).id;
+      if (id !== undefined) roomsById.set(Number(id), room);
+    }
+    for (const booking of response.bookings ?? []) {
+      const id = (booking as { id?: number }).id;
+      if (id !== undefined) bookingsById.set(Number(id), booking);
+    }
+  }
+
+  return normalizeGrid({
+    rooms: [...roomsById.values()],
+    bookings: [...bookingsById.values()],
+  });
+}
+
+/**
  * Комнаты и брони за период. Комнаты приходят все вместе с бронями, поэтому
  * этой же решётки хватает и для списка заездов, и для выбора комнаты при
  * создании — свободна комната или нет видно сразу.
+ *
+ * Длинный период режем на окна: API отвечает 400 на запрос длиннее
+ * MAX_GRID_WINDOW_DAYS, а доска по умолчанию показывает квартал с запасом.
+ *
+ * Окна склеиваем через allSettled: одно неудачное окно не должно обнулять всю
+ * доску — менеджер увидит броней меньше, чем есть, и не поймёт, что произошло.
+ * Ошибкой считаем только полный отказ всех окон.
  */
 export async function fetchBookingGrid(period: GridPeriod): Promise<BookingGrid> {
-  const data = await apiRequest<RawGridResponse>('/v4/booking/grid', {
-    query: { check_in: period.checkIn, check_out: period.checkOut },
-  });
+  const windows = chunkPeriod(period);
+  if (windows.length <= 1) {
+    return normalizeGrid(await fetchGridWindow(period));
+  }
 
-  return normalizeGrid(data);
+  const settled = await Promise.allSettled(windows.map(fetchGridWindow));
+  const ok = settled
+    .filter((r): r is PromiseFulfilledResult<RawGridResponse> => r.status === 'fulfilled')
+    .map((r) => r.value);
+  const failed = settled.length - ok.length;
+
+  if (ok.length === 0) {
+    // Все окна упали — пробуем один общий запрос, чтобы получить текст ошибки
+    // от API, а не «тихую» пустоту
+    return normalizeGrid(await fetchGridWindow(windows[0]));
+  }
+
+  const grid = mergeRawGrids(ok);
+  console.log('[bookingApi] окна:', { total: settled.length, ok: ok.length, failed, rooms: grid.rooms.length, bookings: grid.bookings.length });
+  return grid;
 }
 
 /** Гость для создания брони: паспортные данные бэкенд ждёт одной строкой */
@@ -69,6 +148,17 @@ export function passportInfo(guest: CreateBookingGuest): string {
     .join('; ');
 }
 
+/**
+ * Гость для API Yurta (GuestCreateDto).
+ *
+ * Поле email обязательно: без него /v2/booking/room/prepaid отвечает 400, и
+ * бронь молча не создаётся — менеджер видел «успех» формы и пустую шахматку.
+ * Пустую строку шлём всегда, чтобы состав тела не зависел от того, заполнил
+ * ли менеджер поле.
+ *
+ * Паспортные данные дублируем: структурированными полями (родитель видит их в
+ * карточке гостя) и строкой в additionalInfo (так исторически reads админка).
+ */
 export function guestPayload(guest: CreateBookingGuest): Record<string, unknown> {
   const info = passportInfo(guest);
 
@@ -77,6 +167,11 @@ export function guestPayload(guest: CreateBookingGuest): Record<string, unknown>
     name: guest.name ?? '',
     patronymic: guest.patronymic ?? '',
     phone: guest.phone ?? '',
+    email: guest.email ?? '',
+    ...(guest.birthDate && { birthDate: guest.birthDate }),
+    ...(guest.passport && { passport: guest.passport }),
+    ...(guest.passportIssuedBy && { passportIssuedBy: guest.passportIssuedBy }),
+    ...(guest.address && { registrationAddress: guest.address }),
     ...(info && { additionalInfo: info }),
   };
 }

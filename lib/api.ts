@@ -82,7 +82,9 @@ async function rawRequest<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${withQuery(path, query)}`, {
+    const url = `${API_BASE}${withQuery(path, query)}`;
+    console.log('[api-request]', method, url);
+    response = await fetch(url, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -91,6 +93,7 @@ async function rawRequest<T>(
       // ответ сети — бронь, созданная секунду назад, обязана быть в списке.
       cache: 'no-store',
     });
+    console.log('[api-response]', path, response.status, response.statusText);
   } catch {
     // Браузер не смог достучаться (нет сети / DNS / CORS для чужого хоста)
     throw new ApiError(0, 'Нет связи с сервером');

@@ -31,7 +31,7 @@ import { fetchLeads, patchLead, type SiteLead } from '@/lib/leads';
 
 type FormValues = {
   checkIn: Dayjs;
-  nights: number;
+  checkOut: Dayjs;
   roomId: number;
   capacity: number;
   guests: BookingGuestInfo[];
@@ -68,14 +68,17 @@ export default function CreateBookingForm() {
   const prefilled = useRef(false);
 
   const checkIn = Form.useWatch('checkIn', form);
-  const nights = Form.useWatch('nights', form);
+  const checkOut = Form.useWatch('checkOut', form);
 
   const period = useMemo(() => {
-    if (!checkIn) return null;
+    if (!checkIn || !checkOut) return null;
     const start = toUnix(dayjs(checkIn).startOf('day'));
-    const end = start + Math.max(1, nights ?? 1) * 86_400;
+    const end = toUnix(dayjs(checkOut).startOf('day'));
+    // Выезд обязан быть позже заезда: иначе решётка и выбор комнат считаются
+    // по перевёрнутому окну, а бронь ушла бы с битыми датами
+    if (!start || !end || end <= start) return null;
     return { checkIn: start, checkOut: end };
-  }, [checkIn, nights]);
+  }, [checkIn, checkOut]);
 
   const periodKey = period ? `${period.checkIn}:${period.checkOut}` : null;
 
@@ -98,7 +101,7 @@ export default function CreateBookingForm() {
     prefilled.current = true;
     form.setFieldsValue({
       checkIn: dayjs(lead.checkIn),
-      nights: lead.nights,
+      checkOut: dayjs(lead.checkOut),
       capacity: lead.guests?.length || 1,
       guests: lead.guests?.length
         ? lead.guests
@@ -164,24 +167,28 @@ export default function CreateBookingForm() {
     }
 
     const checkInUnix = toUnix(values.checkIn.startOf('day'));
-    const totalNights = Math.max(1, values.nights ?? 1);
+    const checkOutUnix = toUnix(values.checkOut.startOf('day'));
+    const totalNights = Math.max(1, Math.round((checkOutUnix - checkInUnix) / 86_400));
 
     setSubmitting(true);
     try {
+      console.log('[create-booking] отправка:', { checkIn: formatDate(checkInUnix), checkOut: formatDate(checkOutUnix), roomId: values.roomId, capacity: values.capacity ?? values.guests.length ?? 1 });
       const bookingId = await createBooking({
         checkIn: checkInUnix,
-        checkOut: checkInUnix + totalNights * 86_400,
+        checkOut: checkOutUnix,
         roomIds: [values.roomId],
         capacity: values.capacity ?? values.guests.length ?? 1,
         guests: values.guests,
         comment: values.comment,
       });
+      console.log('[create-booking] результат:', { bookingId });
 
       if (lead && bookingId) await patchLead(lead.leadId, { status: 'booked', bookingId });
 
       messageApi.success(bookingId ? `Бронь #${bookingId} создана` : 'Бронь создана', 4);
       router.push(lead ? '/admin' : '/admin/bookings');
     } catch (error) {
+      console.error('[create-booking] ошибка:', error);
       messageApi.error(describeApiError(error), 6);
     } finally {
       setSubmitting(false);
@@ -190,7 +197,7 @@ export default function CreateBookingForm() {
 
   const periodHint = period
     ? `${formatDate(period.checkIn)} — ${formatDate(period.checkOut)}, ${nightsBetween(period.checkIn, period.checkOut)} ноч.`
-    : 'Выберите дату заезда';
+    : 'Выберите даты заезда и выезда';
 
   const leadName = lead?.guests?.[0]
     ? [lead.guests[0].surname, lead.guests[0].name].filter(Boolean).join(' ')
@@ -262,9 +269,9 @@ export default function CreateBookingForm() {
           onFinish={handleFinish}
           initialValues={{
             checkIn: dayjs().add(1, 'day').startOf('day'),
-            nights: 3,
+            checkOut: dayjs().add(4, 'day').startOf('day'),
             capacity: 1,
-            guests: [{ surname: '', name: '', patronymic: '', phone: '', passport: '' }],
+            guests: [{ surname: '', name: '', patronymic: '', phone: '', email: '', passport: '' }],
           }}
         >
           <div className="grid sm:grid-cols-3 gap-4">
@@ -281,11 +288,31 @@ export default function CreateBookingForm() {
             </Form.Item>
 
             <Form.Item
-              name="nights"
-              label={<span className="text-muted text-xs">Ночей</span>}
-              rules={[{ required: true, message: 'Укажите количество' }]}
+              name="checkOut"
+              label={<span className="text-muted text-xs">Дата выезда</span>}
+              dependencies={['checkIn']}
+              rules={[
+                { required: true, message: 'Выберите дату' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    const start = getFieldValue('checkIn') as Dayjs | undefined;
+                    if (!value || !start || value.isAfter(start, 'day')) return Promise.resolve();
+                    return Promise.reject(new Error('Выезд должен быть позже заезда'));
+                  },
+                }),
+              ]}
             >
-              <InputNumber size="large" min={1} max={60} className="!w-full !rounded-xl" />
+              <DatePicker
+                size="large"
+                className="!w-full !rounded-xl"
+                disabledDate={(current) => {
+                  if (!current) return true;
+                  const start = form.getFieldValue('checkIn') as Dayjs | undefined;
+                  // Минимум — следующая ночь после заезда; без заезда — со завтра
+                  const min = start ? start.add(1, 'day') : dayjs().add(1, 'day');
+                  return current.isBefore(min, 'day');
+                }}
+              />
             </Form.Item>
 
             <Form.Item
@@ -360,6 +387,9 @@ export default function CreateBookingForm() {
                       <Form.Item name={[field.name, 'phone']} className="mb-2">
                         <Input size="large" placeholder="Телефон" className="!rounded-xl" />
                       </Form.Item>
+                      <Form.Item name={[field.name, 'email']} className="mb-2">
+                        <Input size="large" placeholder="Email" className="!rounded-xl" />
+                      </Form.Item>
                       <Form.Item
                         name={[field.name, 'passport']}
                         className="mb-2"
@@ -384,7 +414,7 @@ export default function CreateBookingForm() {
                   <Button
                     type="dashed"
                     icon={<PlusOutlined />}
-                    onClick={() => add({ surname: '', name: '', patronymic: '', phone: '', passport: '' })}
+                    onClick={() => add({ surname: '', name: '', patronymic: '', phone: '', email: '', passport: '' })}
                   >
                     Добавить гостя
                   </Button>

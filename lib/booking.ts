@@ -117,6 +117,11 @@ export type BookingGuestInfo = {
   name: string;
   patronymic: string;
   phone?: string;
+  /**
+   * Email гостя. API Yurta требует его у каждого гостя (GuestCreateDto:
+   * required name, surname, phone, email) — без поля бронь не создаётся.
+   */
+  email?: string;
   birthDate?: string;
   /** Серия и номер одной строкой: «65 12 №123456» */
   passport?: string;

@@ -8,6 +8,7 @@ import {
   HomeOutlined,
   ReloadOutlined,
   SearchOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import { describeApiError } from '@/lib/api';
@@ -23,6 +24,7 @@ import {
 } from '@/lib/bookingApi';
 import { formatDate, nightsBetween, toUnix } from '@/lib/datetime';
 import { formatPrice } from '@/lib/booking';
+import { fetchLeads, type SiteLead } from '@/lib/leads';
 
 const { RangePicker } = DatePicker;
 
@@ -36,6 +38,8 @@ const PERIOD_PRESETS: { label: string; value: [Dayjs, Dayjs] }[] = [
   { label: 'Две недели', value: [dayjs().startOf('day'), dayjs().add(13, 'day').startOf('day')] },
   { label: 'Месяц', value: [dayjs().startOf('day'), dayjs().add(29, 'day').startOf('day')] },
   { label: 'Квартал', value: [dayjs().startOf('day'), dayjs().add(89, 'day').startOf('day')] },
+  { label: 'Полгода', value: [dayjs().startOf('day'), dayjs().add(179, 'day').startOf('day')] },
+  { label: 'Год', value: [dayjs().startOf('day'), dayjs().add(364, 'day').startOf('day')] },
   { label: 'Этот месяц', value: [dayjs().startOf('month'), dayjs().endOf('month').startOf('day')] },
   { label: 'Прошедший месяц', value: [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month').startOf('day')] },
 ];
@@ -49,6 +53,35 @@ const PERIOD_PRESETS: { label: string; value: [Dayjs, Dayjs] }[] = [
  */
 const DEFAULT_PERIOD_DAYS = 90;
 
+/** Синтетический id для lead-брони: отрицательный, чтобы не конфликтовал с Yurta */
+function leadSyntheticId(lead: SiteLead): number {
+  return -(lead.bookingId ?? 0);
+}
+
+/**
+ * Заявка с созданной бронью → GridBooking, чтобы показать её в той же таблице.
+ * roomId = 0 — комнату заявка не хранит, это приёмлемо: комната под заявку
+ * подбирается на сервере и видна только в Yurta.
+ */
+function leadAsGridBooking(lead: SiteLead): GridBooking {
+  return {
+    id: lead.bookingId ?? leadSyntheticId(lead),
+    roomId: 0,
+    checkIn: toUnix(lead.checkIn),
+    checkOut: toUnix(lead.checkOut),
+    status: 'NEW',
+    totalAmount: lead.total,
+    comment: lead.comment ?? '',
+    guests: (lead.guests ?? []).map((g) => ({
+      surname: g.surname,
+      name: g.name,
+      patronymic: g.patronymic,
+      phone: g.phone,
+      additionalInfo: g.passport,
+    })),
+  };
+}
+
 /** Цвет статуса — та же логика, что подсветка в шахматке партнёрского кабинета */
 function statusColor(status: string): string {
   if (/PAID/i.test(status) && !/UNPAID/i.test(status)) return 'green';
@@ -58,10 +91,13 @@ function statusColor(status: string): string {
 }
 
 /**
- * Брони санатория из Yurta за выбранный период.
+ * Брони санатория из Yurta за выбранный период + брони из заявок с сайта.
  *
- * Источник — решётка /v4/booking/grid: она отдаёт и комнаты, и все брони, поэтому
- * одного запроса хватает и на таблицу, и на счётчики загрузки на сегодня.
+ * Источник броней отеля — решётка /v4/booking/grid: она отдаёт и комнаты, и все
+ * брони, поэтому одного запроса хватает и на таблицу, и на счётчики загрузки.
+ * Брони из заявок (leads) добавляются отдельно: сервер создаёт их под сервисным
+ * аккаунтом, и если аккаунт менеджера видит их в решётке — дедупликация по id
+ * уберёт дубль; если не видит — бронь с сайта всё равно будет в списке.
  */
 export default function BookingsBoard() {
   const [period, setPeriod] = useState<[Dayjs, Dayjs]>(() => [
@@ -70,11 +106,13 @@ export default function BookingsBoard() {
   ]);
   const [rooms, setRooms] = useState<GridRoom[]>([]);
   const [bookings, setBookings] = useState<GridBooking[]>([]);
+  const [siteLeads, setSiteLeads] = useState<SiteLead[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<string>('all');
+  const [rawMeta, setRawMeta] = useState<{ rooms: number; bookings: number } | null>(null);
 
   // Все переходы состояний — в колбэках промиса: синхронный setState внутри
   // эффекта дал бы каскадный рендер на каждую смену периода.
@@ -86,15 +124,40 @@ export default function BookingsBoard() {
       checkOut: toUnix(period[1]),
     })
       .then((grid) => {
+        console.log('[bookings-grid] получено:', {
+          rooms: grid.rooms.length,
+          bookings: grid.bookings.length,
+          sample: grid.bookings.slice(0, 3).map((b: GridBooking) => ({
+            id: b.id,
+            roomId: b.roomId,
+            status: b.status,
+            checkInRaw: b.checkIn,
+            checkIn: formatDate(b.checkIn),
+            checkOutRaw: b.checkOut,
+            checkOut: formatDate(b.checkOut),
+          })),
+        });
         setRooms(grid.rooms);
         setBookings(grid.bookings);
+        setRawMeta({ rooms: grid.rooms.length, bookings: grid.bookings.length });
         setError(null);
+        setLoaded(true);
+        setRefreshing(false);
       })
-      .catch((err: unknown) => setError(describeApiError(err)))
-      .finally(() => {
+      .catch((err: unknown) => {
+        console.error('[bookings-grid] ошибка:', err);
+        setError(describeApiError(err));
         setLoaded(true);
         setRefreshing(false);
       });
+
+    // Заявки со статусом «в броне» тянем параллельно: они могут быть не видны
+    // в решётке менеджера (сервисный аккаунт ≠ аккаунт менеджера), но менеджер
+    // обязан видеть каждую созданную бронь. Показываем все заявки, чтобы не
+    // потерять бронь, если заявка ещё не переведена в статус «в броне».
+    fetchLeads()
+      .then(({ leads }) => setSiteLeads(leads))
+      .catch(() => undefined);
   }, [period]);
 
   useEffect(() => {
@@ -106,38 +169,46 @@ export default function BookingsBoard() {
   const roomById = useMemo(() => new Map(rooms.map((room) => [room.id, room])), [rooms]);
 
   /**
-   * Границы выбранного периода: заезд в первую ночь начала и выезд в последнюю
-   * ночь перед концом. Сравниваем с ними, а не с датами «как попало».
+   * Брони из заявок, которых нет в решётке Yurta: сервисный аккаунт создал
+   * бронь, а менеджер под своим логином её не видит (разные аккаунты отеля
+   * или API ещё не ответил). Дедупликация по bookingId — если bookingId есть
+   * и он уже в решётке, дубль не добавляем. Если bookingId нет — добавляем
+   * всегда, потому что дубликата в решётке всё равно нет.
    */
+  const mergedBookings = useMemo(() => {
+    const gridIds = new Set(bookings.map((b) => b.id));
+    const fromLeads = siteLeads
+      .filter((lead) => !lead.bookingId || !gridIds.has(lead.bookingId))
+      .map(leadAsGridBooking);
+    return [...bookings, ...fromLeads];
+  }, [bookings, siteLeads]);
+
+  /** id синтетических броней из заявок — для пометки «с сайта» в таблице */
+  const siteBookingIds = useMemo(
+    () => new Set(siteLeads.filter((l) => !l.bookingId).map(leadSyntheticId)),
+    [siteLeads],
+  );
+
+  /** Границы выбранного периода — только для превью в алертах ниже */
   const windowEdges = useMemo(
     () => ({ from: toUnix(period[0]), to: toUnix(period[1].add(1, 'day')) }),
     [period],
   );
 
-  /**
-   * Заезды, которые занимают комнаты в выбранном периоде: и те, что начинаются
-   * в нём, и те, что начались раньше (гость уже живёт), и те, что закончатся
-   * после его конца. Отменённые в список не входят — номер свободен.
-   */
-  const inPeriod = useMemo(
-    () =>
-      bookings
-        .filter((booking) => !isCancelledStay(booking))
-        .filter((booking) => stayOverlapsWindow(booking, windowEdges.from, windowEdges.to)),
-    [bookings, windowEdges],
-  );
+  /** Все брони, полученные от API — показываем полностью, без фильтрации по дате */
+  const allBookings = useMemo(() => mergedBookings, [mergedBookings]);
 
   const statuses = useMemo(
-    () => Array.from(new Set(inPeriod.map((booking) => booking.status))),
-    [inPeriod],
+    () => Array.from(new Set(allBookings.map((booking) => booking.status))),
+    [allBookings],
   );
 
-  /** Сейчас в номерах — по всему ответу решётки, независимо от выбранного окна */
-  const inHouse = useMemo(() => bookings.filter((booking) => !isCancelledStay(booking) && isGuestInHouse(booking)), [bookings]);
+  /** Сейчас в номерах */
+  const inHouse = useMemo(() => mergedBookings.filter((booking) => !isCancelledStay(booking) && isGuestInHouse(booking)), [mergedBookings]);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return inPeriod
+    return allBookings
       .filter((booking) => {
         // Отдельный фильтр «живут сейчас»: статусы у них бывают разные
         if (status === IN_HOUSE_FILTER) {
@@ -165,7 +236,7 @@ export default function BookingsBoard() {
         return haystack.includes(needle);
       })
       .sort((a, b) => a.checkIn - b.checkIn || a.roomId - b.roomId);
-  }, [inPeriod, query, status, roomById]);
+  }, [allBookings, query, status, roomById]);
 
   /** Комнаты, у которых есть активная бронь на сегодня */
   const occupancyToday = useMemo(() => {
@@ -174,16 +245,32 @@ export default function BookingsBoard() {
     return { occupied: occupied.size, total: rooms.length };
   }, [inHouse, rooms]);
 
-  const unpaid = inPeriod.filter((booking) => bookingStatusLabel(booking.status) === 'Не оплачен').length;
+  const unpaid = allBookings.filter((booking) => bookingStatusLabel(booking.status) === 'Не оплачен').length;
 
   const columns: TableColumnsType<GridBooking> = [
     {
       title: 'Бронь',
       key: 'id',
-      width: 90,
-      render: (_, booking) => (
-        <span className="font-mono-hud text-[11px] text-muted">#{booking.id}</span>
-      ),
+      width: 120,
+      render: (_, booking) => {
+        const isSiteBooking = siteBookingIds.has(booking.id);
+        return (
+          <div>
+            <span className="font-mono-hud text-[11px] text-muted">
+              #{booking.id > 0 ? booking.id : Math.abs(booking.id)}
+            </span>
+            {isSiteBooking && (
+              <Tag
+                icon={<ThunderboltOutlined />}
+                color="cyan"
+                className="!m-0 !ml-1 !px-1 !text-[10px] leading-[16px]"
+              >
+                сайт
+              </Tag>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: 'Гости',
@@ -210,6 +297,9 @@ export default function BookingsBoard() {
       responsive: ['md'],
       render: (_, booking) => {
         const room = roomById.get(booking.roomId);
+        if (!room && booking.roomId === 0) {
+          return <span className="text-muted text-[12px]">из заявки</span>;
+        }
         return (
           <div className="text-[13px]">
             <div className="text-ink">№ {room?.number || '—'}</div>
@@ -315,7 +405,7 @@ export default function BookingsBoard() {
         <div className="glass rounded-2xl p-4">
           <Statistic
             title="Броней в периоде"
-            value={inPeriod.length}
+            value={allBookings.length}
             styles={{ content: { color: 'var(--ink)', fontSize: 26 } }}
           />
         </div>
@@ -367,6 +457,51 @@ export default function BookingsBoard() {
               }}
             >
               Повторить
+            </Button>
+          }
+        />
+      )}
+
+      {/* Диагностика: почему список пуст. Пустая решётка неотличима от «нет
+          доступа к отелю», поэтому показываем, что реально пришёл из API. */}
+      {loaded && !error && rawMeta && rawMeta.bookings === 0 && (
+        <Alert
+          type="info"
+          showIcon
+          message={rawMeta.rooms === 0 ? 'API вернул пустой список комнат' : 'Комнаты есть, броней в периоде нет'}
+          description={
+            rawMeta.rooms === 0
+              ? 'Yurta отвечает на запрос, но не отдаёт ни одной комнаты. Обычно это значит, что у аккаунта менеджера нет доступа к отелю, либо токен устарел — войдите заново.'
+              : `Комнат в пуле: ${rawMeta.rooms}. За выбранное время броней нет — расширьте период или нажмите «Обновить». Если бронь только что создана в партнёрском кабинете, она появится здесь после обновления.`
+          }
+          className="!mb-5 !rounded-xl"
+        />
+      )}
+
+      {/* Брони есть в API, но не попадают в выбранный период — покажем кнопку
+          для расширения периода до всех полученных броней (любой статус, любые даты). */}
+      {loaded && !error && rawMeta && rawMeta.bookings > 0 && allBookings.length === 0 && (
+        <Alert
+          type="info"
+          showIcon
+          icon={<ExclamationCircleOutlined />}
+          message={`API вернул ${rawMeta.bookings} броней, но ни одна не попадает в выбранный период`}
+          description="Брони с любым статусом скрыты, так как их даты заезда/выезда не пересекают выбранное окно. Нажмите кнопку, чтобы расширить период и увидеть все заезды."
+          className="!mb-5 !rounded-xl"
+          action={
+            <Button
+              size="small"
+              type="primary"
+              onClick={() => {
+                // Расширяем период до мин. checkIn и макс. checkOut из всех полученных броней
+                const sample = bookings.length > 0 ? bookings : siteLeads.map(leadAsGridBooking);
+                if (sample.length === 0) return;
+                const minCheckIn = Math.min(...sample.map((b) => b.checkIn));
+                const maxCheckOut = Math.max(...sample.map((b) => b.checkOut));
+                setPeriod([dayjs.unix(minCheckIn).subtract(7, 'day').startOf('day'), dayjs.unix(maxCheckOut).add(7, 'day').startOf('day')]);
+              }}
+            >
+              Показать все заезды
             </Button>
           }
         />
